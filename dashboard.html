@@ -6,6 +6,7 @@
   <title>UH-60M Flight Replay Dashboard</title>
   <link rel="stylesheet" href="dashboard.css" />
   <!-- g3 (gauges) -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
   <script src="g3-master/dist/g3-contrib.min.js"></script>
   <!-- PapaParse for robust CSV parsing -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -18,7 +19,7 @@
 
   <main class="layout">
     <section class="gauges">
-      <svg id="gauges-svg" width="1280" height="620" aria-label="Flight Instruments"></svg>
+      <div id="gauges" aria-label="Flight Instruments"></div>
     </section>
     <aside class="context" aria-label="Context">
       <div class="card">
@@ -50,7 +51,8 @@
         </label>
       </div>
       <div class="slider-wrap">
-        <input type="range" id="time" min="0" max="0" step="1" value="0" />
+        <label for="time" class="visually-hidden">Time</label>
+        <input type="range" id="time" min="0" max="0" step="1" value="0" aria-label="Time" />
         <div id="markers" class="markers" aria-hidden="true"></div>
       </div>
     </section>

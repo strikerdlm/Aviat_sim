@@ -2,9 +2,8 @@
 /* global g3 */
 
 (function () {
-  const svg = d3select('#gauges-svg');
-  const controller = g3.gaugeController();
-  g3.activeController = controller; // wire panel->controller
+  const host = document.getElementById('gauges');
+  // panel will create and set g3.activeController internally
 
   // Layout gauges (two rows): Airspeed, Altitude, Vertical Speed, Engine Torques
   const panel = g3.panel().width(1280).height(620).smooth(true).grid(false);
@@ -15,7 +14,7 @@
   const gaugeTAS = g3.gauge()
     .metric('tas')
     .unit('knot')
-    .measure(d3scaleLinear().domain([0, 200]).range([30, 350]))
+    .measure(d3.scaleLinear().domain([0, 200]).range([30, 350]))
     .append(
       g3.gaugeFace(),
       g3.axisTicks().step(5).size(10),
@@ -29,7 +28,7 @@
   const gaugeALT = g3.gauge()
     .metric('altitude')
     .unit('ft')
-    .measure(d3scaleLinear().domain([0, 1000]).range([0, 360]))
+    .measure(d3.scaleLinear().domain([0, 1000]).range([0, 360]))
     .append(
       g3.gaugeFace(),
       g3.axisTicks().step(20),
@@ -44,18 +43,18 @@
   const gaugeVSI = g3.gauge()
     .metric('vs')
     .unit('ft/min')
-    .measure(d3scaleLinear().domain([-2000, 2000]).range([90, 450]))
+    .measure(d3.scaleLinear().domain([-2000, 2000]).range([90, 450]))
     .append(
       g3.gaugeFace(),
       g3.axisTicks().step(100).size(5),
-      g3.axisTicks().step(500).size(15).style('stroke-width', '2'),
+      g3.axisTicks().step(500).size(15).style('stroke-width: 2'),
       g3.axisLabels().step(1000).format(v => Math.abs(v/100)).size(16),
       g3.gaugeLabel('VSI').y(-25).size(12),
       g3.indicatePointer().shape('sword')
     );
 
   // Engine torque (% proxy)
-  const tqScale = d3scaleLinear().domain([0, 50]).range([210, 510]);
+  const tqScale = d3.scaleLinear().domain([0, 50]).range([210, 510]);
   const tq1 = g3.gauge()
     .metric('tq1').unit('percent')
     .measure(tqScale)
@@ -89,7 +88,8 @@
   put.x(320).y(row2y).scale(1.2).append(tq1);
   put.x(640).y(row2y).scale(1.2).append(tq2);
 
-  d3select(svg.node()).call(panel.append(put));
+  // mount
+  d3.select(host).call(panel.append(put));
 
   // Controls/dom
   const playBtn = document.getElementById('btn-play');
@@ -108,8 +108,7 @@
   let rafId = null;
   let lastTs = 0;
 
-  function d3select(sel) { return window.d3 ? d3.select(sel) : g3.put()(document.querySelector(sel)); }
-  function d3scaleLinear() { return d3.scaleLinear(); }
+  // d3 is provided via script tag
 
   // CSV parsing
   function loadCSV() {
@@ -196,7 +195,7 @@
         tq2: +row['Eng 2 Torque'] || 0
       }
     };
-    controller(metrics, sel => sel.transition().duration(180));
+    if (g3.activeController) g3.activeController(metrics, sel => sel.transition().duration(180));
   }
 
   function tickPlay() {
