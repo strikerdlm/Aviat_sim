@@ -50,6 +50,9 @@ body {
 	position: relative;
 }
 
+/* Make gauges scale to container width for better spacing */
+#gauges svg { width: 100%; height: auto; display: block; }
+
 .context { grid-column: 2 / 3; grid-row: 1 / 6; display: grid; gap: 16px; }
 .card {
 	background: var(--card);
