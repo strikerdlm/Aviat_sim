@@ -1,0 +1,97 @@
+body {
+    margin:  0;
+    background-color:  black;
+}
+svg {
+    background-color:  black;
+    display: block;
+    margin: 0 auto;
+}
+* {
+    vector-effect: non-scaling-stroke;
+}
+text {
+    font-family: Gill Sans,Gill Sans MT,Calibri,sans-serif;
+    text-anchor:  middle;
+    dominant-baseline:  central;
+    font-stretch: condensed;
+    fill: #aaa;
+}
+.gauge-face {
+    fill: #181818;
+}
+.stroke-dark {
+    stroke:  #181818;
+    fill:  none;
+}
+.gauge-axis, .gauge-axis-ticks {
+    stroke: #ddd;
+    fill:  none;
+}
+.gauge-axis-dot, .gauge-axis-wedge {
+    fill:  #ddd;
+    stroke:  none;
+}
+.sector-light {
+    fill: #ddd;
+}
+.sector-blue {
+    fill: #0580BA;
+}
+.sector-green {
+    fill: green;
+}
+.sector-yellow {
+    fill: #987808;
+}
+.sector-red {
+    fill: red;
+}
+.tick-warning path {
+    stroke: red;
+    stroke-width: 2;
+}
+.gauge-region.gauge-region-flaps {
+    fill: #ccc;
+}
+.gauge-region.gauge-region-normal {
+    fill: green;
+}
+.gauge-region.gauge-region-maximum {
+    fill: red;
+}
+.gauge-region.gauge-region-idle {
+    fill: blue;
+}
+
+.gauge-ticklabel-radial text {
+    text-anchor: end;
+}
+.gauge-ticklabel-primary text {
+    font-size: 125%;
+}
+
+.gauge-indicate-pointer {
+    fill: #222;
+    stroke: none;
+    filter: url(#dropShadow2);
+}
+.pointer-needle {
+    fill: red;
+}
+.pointer-blade {
+    fill: #e8e8e8;
+    stroke: #aaa;
+}
+.gauge-screw {
+    fill: #333;
+    filter: url(#dropShadow2);
+}
+.gauge-screw-highlight, .pointer-pin {
+    fill: url(#highlightGradient);
+    fill-opacity: 0.25;
+}
+
+.gauge-screw rect {
+    fill: #222;
+}

@@ -1,0 +1,109 @@
+## Línea de tiempo detallada (CST, segundo a segundo) — MOJO 69 (UH‑60M 13‑20624) — 10 Mar 2015
+Fuente: [[Aircraft Accident Investigation UH-60]] y datos FDR/transcripción de [[Exhibit 20]].
+
+- 14:30 — Tripulaciones salen del hotel hacia A‑15.
+- 15:49 — MOJO 69 sale de Destin (KDTS) hacia A‑15.
+- 15:55 — Aterrizaje en A‑15.
+- 17:00 — Iteraciones diurnas con Caving Ladder en tierra.
+- 19:45 — Brief meteorológico en aeronave; ya hay deterioro respecto a lo mínimo autorizado (ceilings < 1000’ y vis < 3 sm).
+- 20:16:00 — Despegue nocturno desde A‑15 para HELOCAST/Rolled Duck.
+
+Ventana crítica (20:16:32–20:21:38) segundo a segundo, con eventos relevantes de cabina/FDR:
+- 20:16:32 — WG: “All right I am gonna pick up and turn around…”; TF: “Clear right and up”; LB: “Clear left and above”.
+- 20:16:40 — WG: “Tails coming right”; TF: “Tails clear right”.
+- 20:16:43 — LB: “Nose left”.
+- 20:16:52 — LB: “Wow that’s a lot a sparks”.
+- 20:17:07 — WG: “Gee, it’s dark as [exp]; That don’t help none”.
+- 20:17:12 — TF: “No, it didn’t”.
+- 20:17:24 — LB: “Wow, it’s really dark”.
+- 20:17:27 — WG: “It’s really shitty”.
+- 20:17:37 — WG: “We’re gonna take it real slow, guys”.
+- 20:18:05 — TF: “There’s wires somewhere over there next to the road, right?”.
+- 20:18:08 — DS: “Yep, we’re passin over the road”.
+- 20:18:10 — TF: “Roger”.
+  - Alt radar ~76 ft.
+- 20:18:14 — LB: “Yeah, I got ’em in sight”. Alt ~104 ft.
+- 20:18:16 — LB: “We are high enough for the wires”. Alt ~109 ft.
+- 20:18:19 — WG: “Yep”. Alt ~100 ft.
+- 20:18:22 — LB: “Passin almost right over the pole”. Alt ~85 ft.
+- 20:18:26 — WG: “Roger”. Alt ~78 ft.
+- 20:18:28 — Chalk 2: “Let me know when ya’ll pass up those poles”. Alt ~73 ft.
+- 20:18:31 — Chalk 2: “What altitude we got?”. Alt ~78 ft.
+- 20:18:33 — LB: “Alright, you’re clear of the wires”. Alt ~81 ft.
+- 20:18:36 — DS: “We’re at 90 feet, guys”. Alt ~86 ft.
+- 20:18:39 — LB: “By the way, I got Chalk 2 stag left”. Alt ~88 ft.
+- 20:18:43 — LB: “Let’s call ’em 8 o’clock, 1½–1”. Alt ~90 ft.
+- 20:18:48 — DS: “You got us descending?” WG: “Yeah”. Alt ~73→65→63→49→38 ft (20:18:48–20:18:56).
+  - 20:18:50 — WG: “Coming down”.
+  - 20:18:52 — WG: “…voy a bajar… pasar esos postes…”.
+- 20:19:05 — WG: “Hay árboles a la izquierda, cuidado”. Alt ~45 ft.
+- 20:19:09 — Chalk 2: “Pon la luz de búsqueda rápido”.
+- 20:19:12 — Chalk 2: “Gotcha”.
+- 20:19:15 — DS: “Oh no you kill…”. Alt ~64 ft.
+- 20:19:17 — DS: “Oooh”. Alt ~59 ft.
+- 20:19:19 — DS: “Tenemos postes bajo esos árboles, ok”. Alt ~52 ft.
+- 20:19:22 — DS: “Sobre el agua en cinco, muchachos”. Alt ~46 ft.
+- 20:19:26 — WG: “Vigila mi radar altímetro”. Alt ~52 ft.
+- 20:19:29 — DS: “Roger that”. Alt ~67 ft.
+- 20:19:33 — LB: “Estamos sobre el agua”. Alt ~74 ft.
+- 20:19:39 — DS: “Gracias”. Alt ~75 ft.
+- 20:19:40 — WG: “Está demasiado oscuro para ver el [exp] agua”. Alt ~75 ft.
+- 20:19:45 — TF: “Diles que sus position lights steady”.
+- 20:19:50 — DS a Chalk 2: “Quita flash en tus position lights, pon steady”. Alt ~84 ft.
+- 20:19:55 — Chalk 2: “¿Las quieres encendidas?”. Alt ~91 ft.
+- 20:19:57 — WG: “Regresando a la derecha… tirando al Este”.
+  - A partir de aquí, según FDR, la aeronave entra en DVE/IMC; comienza desorientación espacial, con cambios erráticos y viraje/deriva no percibida.
+- 20:20:00 — WG: “Dave, pon 482 en…”. Alt ~143 ft.
+- 20:20:05 — Chalk 2: “Estamos poniendo position lights…”. Alt ~238 ft.
+- 20:20:07 — DS: “482”. Alt ~287 ft.
+- 20:20:08 — WG: “Yep”. Alt ~330 ft.
+- 20:20:09 — WG: “¿Aún me ves…?”. Alt ~335 ft.
+- 20:20:11 — Chalk 2: “Nope”. Alt ~367 ft.
+- 20:20:17 — Chalk 2: “Yep”. Alt ~406 ft; GS ~38 kt.
+- 20:20:23 — WG: “¿Está puesto?”; DS: “No tengo nada, bro”. Alt ~444 ft; GS ~40–43 kt.
+- 20:20:25 — WG: “482 y nada, no está”. Alt ~441 ft; GS ~43 kt.
+- 20:20:27 — DS: “Debería estar”. Alt ~443 ft; GS ~48 kt.
+- 20:20:29 — TF: “No puedo ver nada afuera”. Alt ~446 ft; GS ~50 kt.
+- 20:20:31 — DS: “Nos trepamos a esto, G‑Wayne, vamos a tener que…”. Alt ~459 ft; VS +512 fpm.
+- 20:20:32 — WG: “Oh, sí”. Alt ~459 ft; VS +544 fpm.
+- 20:20:34 — TF: “¿Dónde está nuestro airspeed?”. Alt ~455 ft; GS ~60 kt.
+- 20:20:35 — DS: “Tengo el altimeter setting”. Alt ~454 ft; GS ~60.5 kt.
+- 20:20:37 — DS: “G‑Wayne…”. Alt ~440 ft; GS ~67 kt.
+- 20:20:38 — DS: “G‑Wayne, ¿qué haces?”. Alt ~425 ft; GS ~71 kt.
+- 20:20:40 — WG: “No tengo nada”. Alt ~377 ft; GS ~75.5 kt.
+- 20:20:41 — DS: “Climb, climb, climb”. Alt ~388 ft.
+- 20:20:44 — DS: “Oh, stop, stop…”. Alt ~433 ft; VS +624 fpm.
+- 20:20:45 — Loki 09: “Mojo 69, …”.
+- 20:20:50 — DS: “You got it” (toma controles). Alt ~862 ft; VS +3824 fpm.
+- 20:20:51 — WG: “Yeah”. Alt ~931 ft; VS +3584 fpm.
+- 20:20:53 — TF: “I got nothin”. Alt ~1046 ft; VS +2928 fpm.
+- 20:20:55 — DS: “Tengo tu alt P set”. Alt ~1099 ft; VS +2720 fpm.
+- 20:20:59 — Chalk 2: “Where you at, G‑Wayne”. Alt ~1284 ft.
+- 20:21:00 — Chalk 2: “Can I put my light on”. Alt ~1294 ft.
+- 20:21:01 — WG: “I’m climbin up”. Alt ~1344 ft.
+- 20:21:02 — Loki 09: “Mojo 69, …”. Alt ~1348 ft.
+- 20:21:06 — DS: “Mira tu map, estás girando”. Alt ~1432 ft.
+- 20:21:08 — WG: “I got it, I got it”. Alt ~1453 ft.
+- 20:21:10 — DS: “G‑Wayne, no lo pelees”. Alt ~1455 ft.
+- 20:21:11 — DS: “G‑Wayne…”; WG: “Toma los controles, Dave”. Alt ~1443 ft.
+- 20:21:15 — DS: “I got it”. Alt ~1399 ft; VS +1152 fpm.
+- 20:21:16 — WG: “Watch the collective, Dave”. Alt ~1401 ft.
+- 20:21:18 — DS: “OK, I’m flying”. Alt ~1432 ft.
+- 20:21:19 — WG: “Watch the collective, Dave”. Alt ~1456 ft.
+- 20:21:20 — DS: “Alright”. Alt ~1472 ft; VS +1280 fpm.
+- 20:21:21 — DS: “G‑Wayne, engage autopilot”. Alt ~1481 ft.
+- 20:21:23 — WG: “I got… yeah” (intento de autopiloto; fuera de sobre/condiciones, sin efecto). Alt ~1483 ft.
+- 20:21:24 — DS: “Cuidado, estamos en un mal viraje a la derecha”. Alt ~1662 ft.
+- 20:21:26 — WG: “Yep”. Alt ~1686 ft; GS ~55 kt.
+- 20:21:27 — DS: “G‑Wayne, mira abajo”. Alt ~1407 ft (inicio de caída).
+- 20:21:30 — DS: “Vigila altitud/actitud, nivel”. Alt ~1345 ft; GS ~65 kt.
+- 20:21:33 — DS: “Level”. Alt ~1686 ft; VS −1952 fpm (oscilación).
+- 20:21:35 — DS: “Level… Climb, climb”. Alt ~1441→1026 ft; VS ~−2000 fpm.
+- 20:21:38 — IMPACTO en agua. Alt radar ~137 ft; GS ~139 kt; VS ~−3856 fpm.
+  - Ubicación: Santa Rosa Sound, aprox. 1 sm al norte de A‑15 (cerca de Hurlburt Field).
+
+Notas clave para contexto:
+- Iluminación: 0% (crepúsculo náutico 19:43; la luna no salió hasta 23:38).
+- Meteorología (KHRT): vis ~1 sm; techo 300 ft OVC alrededor del momento del accidente.
+- La fase “en angustia” dura ~2 min 5 s tras la entrada sobre el agua (≈20:19:33–20:21:38).
+- Evidencia de desorientación espacial no reconocida tras cruzar la costa: comunicación de rumbo “tirando al Este” mientras el FDR muestra viraje y perfil errático; pérdida de referencias visuales sobre agua oscura; intento de usar autopiloto fuera de parámetros.

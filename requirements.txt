@@ -1,0 +1,8 @@
+pyvista==0.43.10
+numpy>=1.25
+pandas>=2.1
+pyproj>=3.6
+vtk>=9.2
+imageio>=2.33
+imageio-ffmpeg>=0.4
+
