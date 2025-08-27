@@ -35,7 +35,7 @@ body {
 .layout {
 	display: grid;
 	grid-template-columns: 1fr 320px;
-	grid-template-rows: auto auto 1fr;
+	grid-template-rows: auto auto auto 1fr;
 	gap: 16px;
 	padding: 16px;
 }
@@ -49,7 +49,7 @@ body {
 	padding: 8px;
 }
 
-.context { grid-column: 2 / 3; grid-row: 1 / 3; display: grid; gap: 16px; }
+.context { grid-column: 2 / 3; grid-row: 1 / 4; display: grid; gap: 16px; }
 .card {
 	background: var(--card);
 	border: 1px solid #21262d;
@@ -89,7 +89,7 @@ body {
 
 .transcripts {
 	grid-column: 1 / 3;
-	grid-row: 3 / 4;
+	grid-row: 4 / 5;
 	background: var(--card);
 	border: 1px solid #21262d;
 	border-radius: 12px;
@@ -113,4 +113,31 @@ svg .g3-highlight-fill { fill: var(--accent); }
 svg .g3-normal-fill { fill: var(--good); }
 svg .g3-danger-fill, svg .g3-danger-stroke { stroke: var(--danger); fill: var(--danger); }
 
+
+/* Charts */
+.charts {
+	grid-column: 1 / 3;
+	grid-row: 3 / 4;
+	background: var(--card);
+	border: 1px solid #21262d;
+	border-radius: 12px;
+	padding: 10px 12px 6px;
+}
+.chart-controls { display: flex; align-items: center; gap: 12px; padding: 2px 2px 8px; }
+.chart-controls .label { color: var(--muted); font-size: 13px; }
+.chart-controls select { background: #0f141a; color: var(--fg); border: 1px solid #242b33; border-radius: 8px; padding: 4px 6px; }
+.chart-wrap { position: relative; }
+#chart { width: 100%; height: 240px; display: block; }
+.legend { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
+.legend .item { display: inline-flex; align-items: center; gap: 6px; }
+.legend .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+/* Live stats */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kv { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-items: baseline; padding: 6px 8px; border: 1px solid #242b33; border-radius: 8px; background: #0f141a; }
+.kv .k { color: var(--muted); font-size: 12px; }
+.kv .v { color: var(--fg); font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+
+/* a11y */
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 

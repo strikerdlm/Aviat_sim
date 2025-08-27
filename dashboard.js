@@ -99,6 +99,20 @@
   const clock = document.getElementById('clock');
   const transcriptEl = document.getElementById('transcript-list');
   const eventBody = document.getElementById('event-body');
+  // charts + stats DOM
+  const yLeftSel = document.getElementById('yLeft');
+  const yRightSel = document.getElementById('yRight');
+  const chartSvg = d3.select('#chart');
+  const legendEl = document.getElementById('chart-legend');
+  const stat = {
+    time: document.getElementById('stat-time'),
+    tas: document.getElementById('stat-tas'),
+    alt: document.getElementById('stat-alt'),
+    vs: document.getElementById('stat-vs'),
+    gs: document.getElementById('stat-gs'),
+    tq1: document.getElementById('stat-tq1'),
+    tq2: document.getElementById('stat-tq2')
+  };
 
   // Data holders
   let records = [];
@@ -189,13 +203,39 @@
       },
       metrics: {
         tas: +row.TAS || 0,
-        altitude: (Number.isFinite(row['Altitude Radar']) && row['Altitude Radar'] >= 0) ? row['Altitude Radar'] : (Number.isFinite(row['Ai Pressure']) ? (row['Ai Pressure']*1.0) : 0),
+        altitude: computeAltitude(row),
         vs: +row['Vertical Speed'] || 0,
         tq1: +row['Eng 1 Torque'] || 0,
         tq2: +row['Eng 2 Torque'] || 0
       }
     };
     if (g3.activeController) g3.activeController(metrics, sel => sel.transition().duration(180));
+  }
+
+  function computeAltitude(row) {
+    const ar = row['Altitude Radar'];
+    if (Number.isFinite(ar) && ar >= 0) return ar;
+    const ap = row['Ai Pressure'];
+    if (Number.isFinite(ap)) return ap;
+    const ap2 = row['Air Pressure'];
+    if (Number.isFinite(ap2)) return ap2;
+    return 0;
+  }
+
+  function fmt(num, digits = 0) {
+    if (!Number.isFinite(num)) return '—';
+    return num.toFixed(digits);
+  }
+
+  function updateStats(row, sec) {
+    if (!row) return;
+    stat.time.textContent = timeToLabel(sec ?? row._t ?? 0);
+    stat.tas.textContent = fmt(+row.TAS || 0, 1);
+    stat.alt.textContent = fmt(computeAltitude(row), 0);
+    stat.vs.textContent = fmt(+row['Vertical Speed'] || 0, 0);
+    stat.gs.textContent = fmt(+row['Ground Speed'] || 0, 1);
+    stat.tq1.textContent = fmt(+row['Eng 1 Torque'] || 0, 1);
+    stat.tq2.textContent = fmt(+row['Eng 2 Torque'] || 0, 1);
   }
 
   function tickPlay() {
@@ -217,6 +257,8 @@
     if (row) sendMetrics(row);
     renderTranscript(sec);
     updateEvent(sec);
+    updateStats(row, sec);
+    updateCursor(sec);
   }
 
   function nearestRow(sec) {
@@ -256,6 +298,13 @@
     renderTranscript(tMin);
     updateEvent(tMin);
 
+    // expose for chart helpers
+    window.__tMin = tMin; window.__tMax = tMax;
+    window.__records = records;
+    window.__recordsBySecond = recordsBySecond;
+    window.__nearestRow = nearestRow;
+    window.__computeAltitude = computeAltitude;
+
     // bind controls
     slider.addEventListener('input', onSlider);
     playBtn.addEventListener('click', () => {
@@ -265,13 +314,241 @@
       if (playing) rafId = requestAnimationFrame(tickPlay); else cancelAnimationFrame(rafId);
     });
 
+    // keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.code === 'Space') { e.preventDefault(); playBtn.click(); }
+      if (e.code === 'ArrowRight') { e.preventDefault(); step(+ (e.shiftKey ? 10 : 1)); }
+      if (e.code === 'ArrowLeft') { e.preventDefault(); step(- (e.shiftKey ? 10 : 1)); }
+    });
+
+    function step(delta) {
+      const v = clamp(+slider.value + delta, tMin, tMax);
+      slider.value = Math.round(v);
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    // charts
+    setupChart();
+    drawChart();
+    updateCursor(tMin);
+    if (yLeftSel) yLeftSel.addEventListener('change', () => { drawChart(); updateCursor(+slider.value); });
+    if (yRightSel) yRightSel.addEventListener('change', () => { drawChart(); updateCursor(+slider.value); });
+
     // initial draw with first record
     if (records.length) sendMetrics(records[0]);
+    if (records.length) updateStats(records[0], tMin);
   }
 
   // d3 minimal shims via existing d3 from g3 bundle
   function d3Ready() { return !!window.d3; }
   (function waitD3(){ if (d3Ready()) init(); else setTimeout(waitD3, 50); })();
 })();
+
+// Charting helpers (scopes variables inside closure)
+(function(){
+  // no-op shim if d3 not yet present; init() wires these later
+})();
+
+// Injected chart code inside main closure above
+// We append concrete implementations below using function declarations
+
+// Chart state
+let _chart = {
+  gMain: null,
+  gXAxis: null,
+  gYLeft: null,
+  gYRight: null,
+  pathLeft: null,
+  pathRight: null,
+  cursor: null,
+  dotLeft: null,
+  dotRight: null,
+  margin: { top: 10, right: 54, bottom: 26, left: 54 },
+  width: 0,
+  height: 0,
+  x: null,
+  yL: null,
+  yR: null,
+  leftKey: 'altitude',
+  rightKey: 'tas'
+};
+
+function setupChart() {
+  if (!window.d3) return;
+  const svg = d3.select('#chart');
+  if (svg.select('g.g-main').node()) return; // already
+  svg.attr('viewBox', '0 0 100 50'); // will be overridden by resize; helps initial paint
+
+  _chart.gMain = svg.append('g').attr('class', 'g-main');
+  _chart.gXAxis = _chart.gMain.append('g').attr('class', 'x-axis');
+  _chart.gYLeft = _chart.gMain.append('g').attr('class', 'y-axis y-left');
+  _chart.gYRight = _chart.gMain.append('g').attr('class', 'y-axis y-right');
+  _chart.pathLeft = _chart.gMain.append('path').attr('class', 'line left').attr('fill', 'none').attr('stroke', getColor('left')).attr('stroke-width', 2);
+  _chart.pathRight = _chart.gMain.append('path').attr('class', 'line right').attr('fill', 'none').attr('stroke', getColor('right')).attr('stroke-width', 2).attr('opacity', 0.9);
+  _chart.cursor = _chart.gMain.append('line').attr('class', 'x-cursor').attr('stroke', '#8b949e').attr('stroke-width', 1).attr('stroke-dasharray', '3,3');
+  _chart.dotLeft = _chart.gMain.append('circle').attr('r', 2.8).attr('fill', getColor('left')).attr('stroke', '#000').attr('stroke-width', 0.5);
+  _chart.dotRight = _chart.gMain.append('circle').attr('r', 2.8).attr('fill', getColor('right')).attr('stroke', '#000').attr('stroke-width', 0.5);
+
+  // overlay to capture pointer for seek
+  _chart.gMain.append('rect').attr('class', 'overlay').attr('fill', 'transparent')
+    .on('pointerdown', function(event) {
+      const el = this;
+      if (el.setPointerCapture) try { el.setPointerCapture(event.pointerId); } catch {}
+      seekFromEvent(event, el);
+    })
+    .on('pointermove', function(event) {
+      if (event.buttons !== 1) return;
+      seekFromEvent(event, this);
+    })
+    .on('pointerup', function(event) {
+      if (this.releasePointerCapture) try { this.releasePointerCapture(event.pointerId); } catch {}
+    });
+
+  function seekFromEvent(event, target) {
+    const [mx] = d3.pointer(event, target);
+    const sec = clamp(Math.round(_chart.x.invert(mx)), _chart.x.domain()[0], _chart.x.domain()[1]);
+    const sliderEl = document.getElementById('time');
+    if (sliderEl) {
+      sliderEl.value = sec;
+      sliderEl.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  // Responsive
+  const ro = 'ResizeObserver' in window ? new ResizeObserver(()=>{ drawChart(); updateCursor(+document.getElementById('time').value || 0); }) : null;
+  if (ro) ro.observe(d3.select('#chart').node()); else window.addEventListener('resize', ()=>{ drawChart(); updateCursor(+document.getElementById('time').value || 0); });
+}
+
+function getColor(which) {
+  const style = getComputedStyle(document.documentElement);
+  return which === 'left' ? style.getPropertyValue('--accent').trim() || '#58a6ff' : style.getPropertyValue('--good').trim() || '#3fb950';
+}
+
+function drawChart() {
+  if (!window.d3) return;
+  const svg = d3.select('#chart');
+  if (!svg.node()) return;
+
+  // read selected metrics
+  const leftKey = document.getElementById('yLeft')?.value || 'altitude';
+  const rightKey = document.getElementById('yRight')?.value || 'tas';
+  _chart.leftKey = leftKey; _chart.rightKey = rightKey;
+
+  // sizes
+  const node = svg.node();
+  const { width, height } = node.getBoundingClientRect();
+  const m = _chart.margin;
+  _chart.width = Math.max(320, Math.round(width));
+  _chart.height = Math.max(160, Math.round(height));
+  svg.attr('viewBox', `0 0 ${_chart.width} ${_chart.height}`);
+
+  const innerW = _chart.width - m.left - m.right;
+  const innerH = _chart.height - m.top - m.bottom;
+
+  // update overlay size
+  _chart.gMain.select('rect.overlay').attr('x', m.left).attr('y', m.top).attr('width', innerW).attr('height', innerH);
+
+  // scales
+  const t0 = (window.__tMin ?? 0), t1 = (window.__tMax ?? 1);
+  _chart.x = d3.scaleLinear().domain([t0, t1]).range([m.left, m.left + innerW]);
+  _chart.yL = d3.scaleLinear().domain(extentForKey(leftKey)).nice().range([m.top + innerH, m.top]);
+  _chart.yR = d3.scaleLinear().domain(extentForKey(rightKey)).nice().range([m.top + innerH, m.top]);
+
+  // axes
+  const xAxis = d3.axisBottom(_chart.x).ticks(Math.min(10, Math.floor(innerW/70))).tickFormat(v => tickLabel(v));
+  const yAxisL = d3.axisLeft(_chart.yL).ticks(Math.min(6, Math.floor(innerH/40)));
+  const yAxisR = d3.axisRight(_chart.yR).ticks(Math.min(6, Math.floor(innerH/40)));
+
+  _chart.gXAxis.attr('transform', `translate(0,${m.top + innerH})`).call(xAxis);
+  _chart.gYLeft.attr('transform', `translate(${m.left},0)`).call(yAxisL);
+  _chart.gYRight.attr('transform', `translate(${m.left + innerW},0)`).call(yAxisR);
+
+  // lines
+  const seriesL = seriesForKey(leftKey);
+  const seriesR = seriesForKey(rightKey);
+  const lineGenL = d3.line().x(d => _chart.x(d.t)).y(d => _chart.yL(d.v)).curve(d3.curveMonotoneX).defined(d => Number.isFinite(d.v));
+  const lineGenR = d3.line().x(d => _chart.x(d.t)).y(d => _chart.yR(d.v)).curve(d3.curveMonotoneX).defined(d => Number.isFinite(d.v));
+  _chart.pathLeft.attr('d', lineGenL(seriesL)).attr('stroke', getColor('left'));
+  _chart.pathRight.attr('d', lineGenR(seriesR)).attr('stroke', getColor('right'));
+
+  // legend
+  renderLegend(leftKey, rightKey);
+}
+
+function renderLegend(leftKey, rightKey) {
+  const labels = {
+    altitude: 'Altitude (ft)', tas: 'TAS (kt)', gs: 'Ground Speed (kt)', vs: 'Vertical Speed (fpm)', tq1: 'ENG1 TQ (%)', tq2: 'ENG2 TQ (%)'
+  };
+  const el = document.getElementById('chart-legend');
+  if (!el) return;
+  el.innerHTML = '';
+  const item = (color, text) => {
+    const d = document.createElement('div'); d.className = 'item';
+    const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = color; d.appendChild(sw);
+    const tx = document.createElement('span'); tx.textContent = text; d.appendChild(tx);
+    return d;
+  };
+  el.appendChild(item(getColor('left'), labels[leftKey] || leftKey));
+  el.appendChild(item(getColor('right'), labels[rightKey] || rightKey));
+}
+
+function seriesForKey(key) {
+  const acc = accessorForKey(key);
+  const recs = (window.__records || []);
+  return recs.map(r => ({ t: r._t, v: acc(r) })).filter(d => Number.isFinite(d.v));
+}
+
+function extentForKey(key) {
+  const ser = seriesForKey(key);
+  if (!ser.length) return [0, 1];
+  let lo = Infinity, hi = -Infinity;
+  for (const d of ser) { if (d.v < lo) lo = d.v; if (d.v > hi) hi = d.v; }
+  if (!(Number.isFinite(lo) && Number.isFinite(hi))) return [0, 1];
+  if (lo === hi) { lo -= 1; hi += 1; }
+  return [lo, hi];
+}
+
+function accessorForKey(key) {
+  switch (key) {
+    case 'altitude': return (r) => (window.__computeAltitude ? window.__computeAltitude(r) : (r && r['Altitude Radar']) || 0);
+    case 'tas': return (r) => +r.TAS || 0;
+    case 'gs': return (r) => +r['Ground Speed'] || 0;
+    case 'vs': return (r) => +r['Vertical Speed'] || 0;
+    case 'tq1': return (r) => +r['Eng 1 Torque'] || 0;
+    case 'tq2': return (r) => +r['Eng 2 Torque'] || 0;
+    default: return () => NaN;
+  }
+}
+
+function tickLabel(sec) {
+  const h = Math.floor(sec/3600)%24, m = Math.floor(sec/60)%60, s = Math.floor(sec%60);
+  const pad = (x) => x.toString().padStart(2, '0');
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+function updateCursor(sec) {
+  if (!_chart.x) return;
+  const x = _chart.x(sec);
+  const m = _chart.margin;
+  const innerH = _chart.height - m.top - m.bottom;
+  _chart.cursor.attr('x1', x).attr('x2', x).attr('y1', m.top).attr('y2', m.top + innerH);
+
+  // dots
+  const lAcc = accessorForKey(_chart.leftKey);
+  const rAcc = accessorForKey(_chart.rightKey);
+  const rbs = window.__recordsBySecond;
+  const nr = window.__nearestRow;
+  const row = (rbs && rbs.get ? rbs.get(sec) : null) || (typeof nr === 'function' ? nr(sec) : null);
+  if (row) {
+    const yL = _chart.yL(lAcc(row));
+    const yR = _chart.yR(rAcc(row));
+    _chart.dotLeft.attr('cx', x).attr('cy', yL).attr('opacity', Number.isFinite(yL) ? 1 : 0);
+    _chart.dotRight.attr('cx', x).attr('cy', yR).attr('opacity', Number.isFinite(yR) ? 1 : 0);
+  }
+}
+
+function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
 
 
