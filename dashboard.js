@@ -104,6 +104,10 @@
   const yRightSel = document.getElementById('yRight');
   const chartSvg = d3.select('#chart');
   const legendEl = document.getElementById('chart-legend');
+  const smoothEl = document.getElementById('smooth');
+  const commsBubble = document.getElementById('comms-bubble');
+  const riskBadgesEl = document.getElementById('risk-badges');
+  const highlightsEl = document.getElementById('highlight-list');
   const stat = {
     time: document.getElementById('stat-time'),
     tas: document.getElementById('stat-tas'),
@@ -117,6 +121,7 @@
   // Data holders
   let records = [];
   let timeline = [];
+  let highlights = [];
   let tMin = 0, tMax = 0;
   let playing = false;
   let rafId = null;
@@ -178,13 +183,25 @@
     // Show transcript lines within +- 10s window, highlight current second matches
     const near = records.filter(r => Math.abs(r._t - nowSec) <= 10 && r.Transcripts);
     transcriptEl.innerHTML = '';
+    let latestSaid = null;
     near.forEach(r => {
       const div = document.createElement('div');
       div.className = 'line' + (r._t === nowSec ? ' now' : '');
       const time = `${r.Local_Hour?.toString().padStart(2,'0') ?? '--'}:${r.Local_Minute?.toString().padStart(2,'0') ?? '--'}:${r.Local_Second?.toString().padStart(2,'0') ?? '--'}`;
       div.innerHTML = `<div class="t">${time}</div><div class="crew">${r.Crew || ''}</div><div class="say">${(r.Transcripts||'').replace(/^"+|"+$/g,'')}</div>`;
       transcriptEl.appendChild(div);
+      if (Math.abs((r._t||0) - nowSec) <= 1) latestSaid = r;
     });
+    renderCommsBubble(latestSaid);
+  }
+
+  function renderCommsBubble(row) {
+    if (!commsBubble) return;
+    if (!row || !row.Transcripts) { commsBubble.classList.remove('show'); return; }
+    const crew = (row.Crew||'').toString().trim();
+    const said = (row.Transcripts||'').toString().replace(/^"+|"+$/g,'');
+    commsBubble.innerHTML = `<div class="crew">${crew}</div><div class="text">${said}</div>`;
+    commsBubble.classList.add('show');
   }
 
   function updateEvent(nowSec) {
@@ -193,6 +210,11 @@
     let best = null;
     for (const ev of timeline) if (ev.t <= nowSec) best = ev; else break;
     eventBody.textContent = best ? best.text : '—';
+    // also pulse comms bubble subtly when new event
+    if (best && commsBubble) {
+      commsBubble.classList.remove('show');
+      setTimeout(()=>{ commsBubble.classList.add('show'); }, 50);
+    }
   }
 
   function sendMetrics(row) {
@@ -236,6 +258,30 @@
     stat.gs.textContent = fmt(+row['Ground Speed'] || 0, 1);
     stat.tq1.textContent = fmt(+row['Eng 1 Torque'] || 0, 1);
     stat.tq2.textContent = fmt(+row['Eng 2 Torque'] || 0, 1);
+    renderRiskBadges(row);
+  }
+
+  function renderRiskBadges(row) {
+    if (!riskBadgesEl) return;
+    riskBadgesEl.innerHTML = '';
+    const alt = computeAltitude(row);
+    const gs = +row['Ground Speed'] || 0;
+    const visBad = true; // from context (IMC/DVE)
+    const lowAlt = alt > 0 && alt < 100;
+    const highVS = Math.abs(+row['Vertical Speed']||0) > 1000;
+    const items = [
+      { key: 'IMC/DVE', on: visBad, danger: visBad },
+      { key: 'Low Alt <100 ft', on: lowAlt, danger: lowAlt },
+      { key: 'High |VS| > 1000', on: highVS, danger: highVS },
+      { key: 'Over water', on: true, danger: false },
+      { key: 'NVG', on: true, danger: false },
+    ];
+    for (const it of items) {
+      const d = document.createElement('div');
+      d.className = 'badge' + (it.on ? ' on' : '') + (it.danger ? ' danger' : '');
+      d.textContent = it.key;
+      riskBadgesEl.appendChild(d);
+    }
   }
 
   function tickPlay() {
@@ -294,9 +340,12 @@
     setClock(tMin);
 
     timeline = await loadTimeline();
+    highlights = extractHighlightsFromMarkdown(timeline);
+    window.highlights = highlights;
     renderMarkers();
     renderTranscript(tMin);
     updateEvent(tMin);
+    renderHighlights();
 
     // expose for chart helpers
     window.__tMin = tMin; window.__tMax = tMax;
@@ -304,6 +353,9 @@
     window.__recordsBySecond = recordsBySecond;
     window.__nearestRow = nearestRow;
     window.__computeAltitude = computeAltitude;
+
+    // Map init
+    setupMap();
 
     // bind controls
     slider.addEventListener('input', onSlider);
@@ -335,6 +387,7 @@
     updateCursor(tMin);
     if (yLeftSel) yLeftSel.addEventListener('change', () => { drawChart(); updateCursor(+slider.value); });
     if (yRightSel) yRightSel.addEventListener('change', () => { drawChart(); updateCursor(+slider.value); });
+    if (smoothEl) smoothEl.addEventListener('input', () => { drawChart(); updateCursor(+slider.value); });
 
     // initial draw with first record
     if (records.length) sendMetrics(records[0]);
@@ -495,9 +548,14 @@ function renderLegend(leftKey, rightKey) {
 }
 
 function seriesForKey(key) {
+  const smooth = Math.max(0, Math.min(50, parseInt(document.getElementById('smooth')?.value || '0', 10)));
   const acc = accessorForKey(key);
   const recs = (window.__records || []);
-  return recs.map(r => ({ t: r._t, v: acc(r) })).filter(d => Number.isFinite(d.v));
+  const arr = recs.map(r => ({ t: r._t, v: acc(r) }));
+  if (!smooth) return arr.filter(d => Number.isFinite(d.v));
+  const kernel = movingAverageKernel(smooth);
+  const smoothed = convolve1D(arr, kernel);
+  return smoothed.filter(d => Number.isFinite(d.v));
 }
 
 function extentForKey(key) {
@@ -547,8 +605,124 @@ function updateCursor(sec) {
     _chart.dotLeft.attr('cx', x).attr('cy', yL).attr('opacity', Number.isFinite(yL) ? 1 : 0);
     _chart.dotRight.attr('cx', x).attr('cy', yR).attr('opacity', Number.isFinite(yR) ? 1 : 0);
   }
+
+  // sync map
+  updateMapPosition(sec);
 }
 
 function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+
+// Map state and helpers
+let _map = { map: null, path: null, marker: null, coords: [] };
+
+function setupMap() {
+  const el = document.getElementById('map');
+  if (!el || typeof L === 'undefined') return;
+  if (_map.map) return;
+  _map.map = L.map(el, { zoomControl: true, attributionControl: false });
+  const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19
+  });
+  tiles.addTo(_map.map);
+  // Load KML path via fetch (simple parser for coordinates)
+  fetch('MOJO69 Flight Path.kml').then(r => r.text()).then(txt => {
+    const coords = parseKmlCoordinates(txt);
+    _map.coords = coords;
+    if (coords.length) {
+      const latlngs = coords.map(c => [c[1], c[0]]);
+      _map.path = L.polyline(latlngs, { color: getColor('left') || '#58a6ff', weight: 3, opacity: 0.9 }).addTo(_map.map);
+      _map.marker = L.circleMarker(latlngs[0], { radius: 5, color: '#fff', weight: 1, fillColor: '#ff6b6b', fillOpacity: 0.9 }).addTo(_map.map);
+      _map.map.fitBounds(_map.path.getBounds(), { padding: [12,12] });
+    }
+  }).catch(()=>{});
+}
+
+function parseKmlCoordinates(txt) {
+  const coords = [];
+  const re = /<coordinates>([\s\S]*?)<\/coordinates>/g;
+  let m;
+  while ((m = re.exec(txt))) {
+    const block = m[1].trim();
+    const pairs = block.split(/\s+/);
+    for (const p of pairs) {
+      const parts = p.split(',');
+      if (parts.length >= 2) {
+        const lon = parseFloat(parts[0]);
+        const lat = parseFloat(parts[1]);
+        if (Number.isFinite(lat) && Number.isFinite(lon)) coords.push([lon, lat]);
+      }
+    }
+  }
+  return coords;
+}
+
+function updateMapPosition(sec) {
+  if (!_map.map || !_map.coords.length) return;
+  // naive mapping by index across time range
+  const t0 = (window.__tMin || 0), t1 = (window.__tMax || 1);
+  const frac = (sec - t0) / Math.max(1, (t1 - t0));
+  const idx = Math.max(0, Math.min(_map.coords.length - 1, Math.round(frac * (_map.coords.length - 1))));
+  const c = _map.coords[idx];
+  const latlng = [c[1], c[0]];
+  if (_map.marker) _map.marker.setLatLng(latlng);
+}
+
+// Simple symmetric moving-average kernel
+function movingAverageKernel(radius) {
+  const r = Math.max(0, Math.floor(radius));
+  const len = r * 2 + 1;
+  const w = 1 / len;
+  const k = new Array(len).fill(w);
+  return k;
+}
+
+function convolve1D(series, kernel) {
+  const r = Math.floor(kernel.length / 2);
+  const out = new Array(series.length);
+  for (let i = 0; i < series.length; i++) {
+    let acc = 0, wsum = 0;
+    for (let j = -r; j <= r; j++) {
+      const idx = i + j;
+      if (idx < 0 || idx >= series.length) continue;
+      const w = kernel[j + r];
+      const v = series[idx].v;
+      if (Number.isFinite(v)) { acc += v * w; wsum += w; }
+    }
+    const v = wsum ? acc / wsum : NaN;
+    out[i] = { t: series[i].t, v };
+  }
+  return out;
+}
+
+// Highlights from markdown timeline
+function extractHighlightsFromMarkdown(timeline) {
+  // Simple heuristics: pick key calls like "IMC", "autopilot", "Level", "Climb", "Impact"
+  const keys = [/IMC/i, /autopilot/i, /Level/i, /Climb/i, /Impact|IMPACTO/i, /wires/i, /water/i];
+  return timeline.filter(ev => keys.some(k => k.test(ev.text))).slice(0, 50);
+}
+
+function renderHighlights() {
+  if (!document.getElementById('highlight-list')) return;
+  const el = document.getElementById('highlight-list');
+  el.innerHTML = '';
+  const toTime = (sec) => {
+    const h = Math.floor(sec/3600)%24, m = Math.floor(sec/60)%60, s = Math.floor(sec%60);
+    const pad = (x) => x.toString().padStart(2, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  };
+  for (const h of (window.highlights || [])) {
+    const d = document.createElement('div');
+    d.className = 'highlight';
+    d.innerHTML = `<div class="t">${toTime(h.t)}</div><div class="tx">${h.text}</div>`;
+    d.addEventListener('click', () => {
+      const sliderEl = document.getElementById('time');
+      if (sliderEl) {
+        sliderEl.value = Math.round(h.t);
+        sliderEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+    el.appendChild(d);
+  }
+}
 
 
