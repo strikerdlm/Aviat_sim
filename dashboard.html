@@ -10,6 +10,9 @@
   <script src="g3-master/dist/g3-contrib.min.js"></script>
   <!-- PapaParse for robust CSV parsing -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <!-- Leaflet for map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 <body>
   <header class="topbar">
@@ -20,6 +23,7 @@
   <main class="layout">
     <section class="gauges">
       <div id="gauges" aria-label="Flight Instruments"></div>
+      <div id="comms-bubble" class="comms-bubble" aria-live="polite" aria-atomic="true"></div>
     </section>
     <aside class="context" aria-label="Context">
       <div class="card">
@@ -45,6 +49,11 @@
           <div class="kv"><div class="k">ENG1 TQ %</div><div class="v" id="stat-tq1">—</div></div>
           <div class="kv"><div class="k">ENG2 TQ %</div><div class="v" id="stat-tq2">—</div></div>
         </div>
+        <div id="risk-badges" class="risk-badges"></div>
+      </div>
+      <div class="card" id="highlights">
+        <h3>Highlights</h3>
+        <div id="highlight-list" class="highlight-list"></div>
       </div>
     </aside>
 
@@ -94,10 +103,18 @@
         </label>
         <div class="spacer"></div>
         <div class="legend" id="chart-legend"></div>
+        <div class="spacer"></div>
+        <label>Smoothing
+          <input id="smooth" type="range" min="0" max="12" step="1" value="4" />
+        </label>
       </div>
       <div class="chart-wrap">
         <svg id="chart" role="img" aria-label="Metrics chart"></svg>
       </div>
+    </section>
+
+    <section class="map" aria-label="Flight Path Map">
+      <div id="map" role="img" aria-label="Georeferenced flight path"></div>
     </section>
 
     <section class="transcripts" aria-label="Cockpit Transcript">
