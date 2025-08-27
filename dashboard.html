@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UH-60M Flight Replay Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+  <!-- g3 (gauges) -->
+  <script src="g3-master/dist/g3-contrib.min.js"></script>
+  <!-- PapaParse for robust CSV parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">UH-60M Flight Replay</div>
+    <div class="meta">MOJO 69 · 10 Mar 2015 · Training near Hurlburt Field</div>
+  </header>
+
+  <main class="layout">
+    <section class="gauges">
+      <svg id="gauges-svg" width="1280" height="620" aria-label="Flight Instruments"></svg>
+    </section>
+    <aside class="context" aria-label="Context">
+      <div class="card">
+        <h3>Context</h3>
+        <ul>
+          <li>IMC/DVE over water, 0% moon illumination</li>
+          <li>Ceiling ~300 ft OVC; visibility ~1 sm (KHRT)</li>
+          <li>Spatial disorientation after crossing shoreline</li>
+        </ul>
+      </div>
+      <div class="card" id="event-now">
+        <h3>Timeline Event</h3>
+        <div class="event-body" id="event-body">—</div>
+      </div>
+    </aside>
+
+    <section class="timeline">
+      <div class="controls">
+        <button id="btn-play" title="Play/Pause" aria-label="Play/Pause">▶</button>
+        <label class="time-label"><span id="clock">--:--:--</span></label>
+        <div class="spacer"></div>
+        <label>Speed
+          <select id="speed">
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+          </select>
+        </label>
+      </div>
+      <div class="slider-wrap">
+        <input type="range" id="time" min="0" max="0" step="1" value="0" />
+        <div id="markers" class="markers" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="transcripts" aria-label="Cockpit Transcript">
+      <div class="transcript-header">
+        <h3>Cockpit Transcript</h3>
+      </div>
+      <div id="transcript-list" class="transcript-list"></div>
+    </section>
+  </main>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
+
+
