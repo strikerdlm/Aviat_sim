@@ -34,6 +34,18 @@
         <h3>Timeline Event</h3>
         <div class="event-body" id="event-body">—</div>
       </div>
+      <div class="card" id="live-stats">
+        <h3>Now</h3>
+        <div class="stats-grid" id="stats-grid">
+          <div class="kv"><div class="k">Time</div><div class="v" id="stat-time">--:--:--</div></div>
+          <div class="kv"><div class="k">TAS</div><div class="v" id="stat-tas">—</div></div>
+          <div class="kv"><div class="k">Alt (ft)</div><div class="v" id="stat-alt">—</div></div>
+          <div class="kv"><div class="k">VS (fpm)</div><div class="v" id="stat-vs">—</div></div>
+          <div class="kv"><div class="k">GS</div><div class="v" id="stat-gs">—</div></div>
+          <div class="kv"><div class="k">ENG1 TQ %</div><div class="v" id="stat-tq1">—</div></div>
+          <div class="kv"><div class="k">ENG2 TQ %</div><div class="v" id="stat-tq2">—</div></div>
+        </div>
+      </div>
     </aside>
 
     <section class="timeline">
@@ -54,6 +66,37 @@
         <label for="time" class="visually-hidden">Time</label>
         <input type="range" id="time" min="0" max="0" step="1" value="0" aria-label="Time" />
         <div id="markers" class="markers" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="charts" aria-label="Flight Metrics">
+      <div class="chart-controls">
+        <div class="label">Chart</div>
+        <label>Left Y
+          <select id="yLeft">
+            <option value="altitude" selected>Altitude (ft)</option>
+            <option value="tas">TAS (kt)</option>
+            <option value="gs">Ground Speed (kt)</option>
+            <option value="vs">Vertical Speed (fpm)</option>
+            <option value="tq1">ENG1 TQ (%)</option>
+            <option value="tq2">ENG2 TQ (%)</option>
+          </select>
+        </label>
+        <label>Right Y
+          <select id="yRight">
+            <option value="tas" selected>TAS (kt)</option>
+            <option value="gs">Ground Speed (kt)</option>
+            <option value="vs">Vertical Speed (fpm)</option>
+            <option value="altitude">Altitude (ft)</option>
+            <option value="tq1">ENG1 TQ (%)</option>
+            <option value="tq2">ENG2 TQ (%)</option>
+          </select>
+        </label>
+        <div class="spacer"></div>
+        <div class="legend" id="chart-legend"></div>
+      </div>
+      <div class="chart-wrap">
+        <svg id="chart" role="img" aria-label="Metrics chart"></svg>
       </div>
     </section>
 
