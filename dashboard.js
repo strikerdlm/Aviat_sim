@@ -18,26 +18,30 @@
       .measure(d3.scaleLinear().domain([0, 200]).range([30, 350]))
       .append(
         g3.gaugeFace(),
-        g3.axisTicks().step(5).size(10),
-        g3.axisTicks().step(10).size(15).style('stroke-width: 2'),
+        g3.axisTicks().step(10).size(12).style('stroke-width: 2'),
         g3.axisLabels().step(20).inset(30),
-        g3.gaugeLabel('TAS KT').y(-33),
+        g3.gaugeLabel('TAS (kt)').y(-33),
+        g3.put().y(10).append(
+          g3.indicateText().format(v => Math.round(v)).size(20)
+        ),
         g3.indicatePointer().shape('sword')
       );
 
-    // Altitude (Radar Alt or Altitude)
+    // Altitude (Radio Altimeter)
     const gaugeALT = g3.gauge()
       .metric('altitude')
       .unit('ft')
-      .measure(d3.scaleLinear().domain([0, 1000]).range([0, 360]))
+      .measure(d3.scaleLinear().domain([0, 1500]).range([0, 360]))
       .append(
         g3.gaugeFace(),
-        g3.axisTicks().step(20),
-        g3.axisTicks().step(100).size(15).style('stroke-width: 2'),
-        g3.axisLabels().step(100).format(v => v/100).size(20),
+        g3.axisTicks().step(50),
+        g3.axisTicks().step(250).size(15).style('stroke-width: 2'),
+        g3.axisLabels().step(250).format(v => Math.round(v/100)).size(18),
         g3.gaugeLabel('ALT (ft)').y(-33),
-        g3.indicatePointer().shape('blade'),
-        g3.indicatePointer().shape('dagger').rescale(v => v/100)
+        g3.put().y(10).append(
+          g3.indicateText().format(v => Math.round(v)).size(20)
+        ),
+        g3.indicatePointer().shape('blade')
       );
 
     // Vertical Speed (ft/min)
@@ -47,11 +51,14 @@
       .measure(d3.scaleLinear().domain([-2000, 2000]).range([90, 450]))
       .append(
         g3.gaugeFace(),
-        g3.axisTicks().step(100).size(5),
-        g3.axisTicks().step(500).size(15).style('stroke-width: 2'),
+        g3.axisTicks().step(200).size(6),
+        g3.axisTicks().step(1000).size(14).style('stroke-width: 2'),
         g3.axisLabels().step(1000).format(v => Math.abs(v/100)).size(16),
         g3.gaugeLabel('VSI').y(-25).size(12),
-        g3.indicatePointer().shape('sword')
+        g3.put().y(8).append(
+          g3.indicateText().format(v => Math.round(v)).size(18)
+        ),
+        g3.indicatePointer().shape('sword').clamp([-1950, 1950])
       );
 
     // Engine torque (% proxy)
@@ -81,13 +88,12 @@
 
     // Place gauges
     const put = g3.put();
-    put.x(160).y(row1y).scale(1.2).append(gaugeTAS);
-    put.x(480).y(row1y).scale(1.2).append(gaugeALT);
-    put.x(800).y(row1y).scale(1.2).append(gaugeVSI);
-    put.x(1120).y(row1y).scale(1.2).append(g3.gauge().append(g3.gaugeFace(), g3.gaugeLabel(''))); // spacer aesthetic
+    put.x(200).y(row1y).scale(1.25).append(gaugeTAS);
+    put.x(640).y(row1y).scale(1.25).append(gaugeALT);
+    put.x(1080).y(row1y).scale(1.25).append(gaugeVSI);
 
-    put.x(320).y(row2y).scale(1.2).append(tq1);
-    put.x(640).y(row2y).scale(1.2).append(tq2);
+    put.x(520).y(row2y).scale(1.25).append(tq1);
+    put.x(840).y(row2y).scale(1.25).append(tq2);
 
     // mount
     d3.select(host).call(panel.append(put));
