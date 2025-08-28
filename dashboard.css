@@ -105,7 +105,7 @@ body {
 	overflow: hidden;
 }
 .transcript-header { padding: 10px 12px; border-bottom: 1px solid #21262d; }
-.transcript-list { padding: 8px 12px 14px; display: grid; gap: 6px; max-height: 320px; overflow: auto; }
+.transcript-list { padding: 8px 12px 14px; display: grid; gap: 6px; max-height: 620px; overflow: auto; }
 
 .line { display: grid; grid-template-columns: 90px 70px 1fr; gap: 10px; align-items: start; padding: 8px 10px; border-radius: 8px; border: 1px solid #242b33; background: #0f141a; }
 .line .t { color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -136,7 +136,7 @@ svg .g3-danger-fill, svg .g3-danger-stroke { stroke: var(--danger); fill: var(--
 .chart-controls .label { color: var(--muted); font-size: 13px; }
 .chart-controls select { background: #0f141a; color: var(--fg); border: 1px solid #242b33; border-radius: 8px; padding: 4px 6px; }
 .chart-wrap { position: relative; }
-#chart { width: 100%; height: 240px; display: block; }
+#chart { width: 100%; height: 620px; display: block; }
 .legend { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
 .legend .item { display: inline-flex; align-items: center; gap: 6px; }
 .legend .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
@@ -150,7 +150,7 @@ svg .g3-danger-fill, svg .g3-danger-stroke { stroke: var(--danger); fill: var(--
 	border-radius: 12px;
 	padding: 8px;
 }
-#map { height: 260px; border-radius: 8px; border: 1px solid #242b33; }
+#map { height: 620px; border-radius: 8px; border: 1px solid #242b33; }
 
 /* Comms bubble */
 .comms-bubble {
