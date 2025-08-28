@@ -86,17 +86,18 @@
         g3.indicatePointer().shape('rondel')
       );
 
-    // Place gauges
-    const put = g3.put();
-    put.x(200).y(row1y).scale(1.25).append(gaugeTAS);
-    put.x(640).y(row1y).scale(1.25).append(gaugeALT);
-    put.x(1080).y(row1y).scale(1.25).append(gaugeVSI);
-
-    put.x(520).y(row2y).scale(1.25).append(tq1);
-    put.x(840).y(row2y).scale(1.25).append(tq2);
+    // Place gauges: each instrument gets its own positioned container
+    const layout = g3.put()
+      .append(
+        g3.put().x(200).y(row1y).scale(1.25).append(gaugeTAS),
+        g3.put().x(640).y(row1y).scale(1.25).append(gaugeALT),
+        g3.put().x(1080).y(row1y).scale(1.25).append(gaugeVSI),
+        g3.put().x(520).y(row2y).scale(1.25).append(tq1),
+        g3.put().x(840).y(row2y).scale(1.25).append(tq2)
+      );
 
     // mount
-    d3.select(host).call(panel.append(put));
+    d3.select(host).call(panel.append(layout));
   }
 
   // Controls/dom
