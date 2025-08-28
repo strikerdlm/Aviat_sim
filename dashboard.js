@@ -5,91 +5,93 @@
   const host = document.getElementById('gauges');
   // panel will create and set g3.activeController internally
 
-  // Layout gauges (two rows): Airspeed, Altitude, Vertical Speed, Engine Torques
-  const panel = g3.panel().width(1280).height(620).smooth(true).grid(false);
+  function createGauges() {
+    // Layout gauges (two rows): Airspeed, Altitude, Vertical Speed, Engine Torques
+    const panel = g3.panel().width(1280).height(620).smooth(true).grid(false);
 
-  const row1y = 150, row2y = 450;
+    const row1y = 150, row2y = 450;
 
-  // Airspeed (TAS)
-  const gaugeTAS = g3.gauge()
-    .metric('tas')
-    .unit('knot')
-    .measure(d3.scaleLinear().domain([0, 200]).range([30, 350]))
-    .append(
-      g3.gaugeFace(),
-      g3.axisTicks().step(5).size(10),
-      g3.axisTicks().step(10).size(15).style('stroke-width: 2'),
-      g3.axisLabels().step(20).inset(30),
-      g3.gaugeLabel('TAS KT').y(-33),
-      g3.indicatePointer().shape('sword')
-    );
+    // Airspeed (TAS)
+    const gaugeTAS = g3.gauge()
+      .metric('tas')
+      .unit('knot')
+      .measure(d3.scaleLinear().domain([0, 200]).range([30, 350]))
+      .append(
+        g3.gaugeFace(),
+        g3.axisTicks().step(5).size(10),
+        g3.axisTicks().step(10).size(15).style('stroke-width: 2'),
+        g3.axisLabels().step(20).inset(30),
+        g3.gaugeLabel('TAS KT').y(-33),
+        g3.indicatePointer().shape('sword')
+      );
 
-  // Altitude (Radar Alt or Altitude)
-  const gaugeALT = g3.gauge()
-    .metric('altitude')
-    .unit('ft')
-    .measure(d3.scaleLinear().domain([0, 1000]).range([0, 360]))
-    .append(
-      g3.gaugeFace(),
-      g3.axisTicks().step(20),
-      g3.axisTicks().step(100).size(15).style('stroke-width: 2'),
-      g3.axisLabels().step(100).format(v => v/100).size(20),
-      g3.gaugeLabel('ALT (ft)').y(-33),
-      g3.indicatePointer().shape('blade'),
-      g3.indicatePointer().shape('dagger').rescale(v => v/100)
-    );
+    // Altitude (Radar Alt or Altitude)
+    const gaugeALT = g3.gauge()
+      .metric('altitude')
+      .unit('ft')
+      .measure(d3.scaleLinear().domain([0, 1000]).range([0, 360]))
+      .append(
+        g3.gaugeFace(),
+        g3.axisTicks().step(20),
+        g3.axisTicks().step(100).size(15).style('stroke-width: 2'),
+        g3.axisLabels().step(100).format(v => v/100).size(20),
+        g3.gaugeLabel('ALT (ft)').y(-33),
+        g3.indicatePointer().shape('blade'),
+        g3.indicatePointer().shape('dagger').rescale(v => v/100)
+      );
 
-  // Vertical Speed (ft/min)
-  const gaugeVSI = g3.gauge()
-    .metric('vs')
-    .unit('ft/min')
-    .measure(d3.scaleLinear().domain([-2000, 2000]).range([90, 450]))
-    .append(
-      g3.gaugeFace(),
-      g3.axisTicks().step(100).size(5),
-      g3.axisTicks().step(500).size(15).style('stroke-width: 2'),
-      g3.axisLabels().step(1000).format(v => Math.abs(v/100)).size(16),
-      g3.gaugeLabel('VSI').y(-25).size(12),
-      g3.indicatePointer().shape('sword')
-    );
+    // Vertical Speed (ft/min)
+    const gaugeVSI = g3.gauge()
+      .metric('vs')
+      .unit('ft/min')
+      .measure(d3.scaleLinear().domain([-2000, 2000]).range([90, 450]))
+      .append(
+        g3.gaugeFace(),
+        g3.axisTicks().step(100).size(5),
+        g3.axisTicks().step(500).size(15).style('stroke-width: 2'),
+        g3.axisLabels().step(1000).format(v => Math.abs(v/100)).size(16),
+        g3.gaugeLabel('VSI').y(-25).size(12),
+        g3.indicatePointer().shape('sword')
+      );
 
-  // Engine torque (% proxy)
-  const tqScale = d3.scaleLinear().domain([0, 50]).range([210, 510]);
-  const tq1 = g3.gauge()
-    .metric('tq1').unit('percent')
-    .measure(tqScale)
-    .append(
-      g3.gaugeFace(),
-      g3.axisTicks().step(2),
-      g3.axisTicks().step(10).size(15).style('stroke-width: 2'),
-      g3.axisLabels().step(10).inset(30),
-      g3.gaugeLabel('ENG 1 TQ').y(-33),
-      g3.indicatePointer().shape('rondel')
-    );
-  const tq2 = g3.gauge()
-    .metric('tq2').unit('percent')
-    .measure(tqScale)
-    .append(
-      g3.gaugeFace(),
-      g3.axisTicks().step(2),
-      g3.axisTicks().step(10).size(15).style('stroke-width: 2'),
-      g3.axisLabels().step(10).inset(30),
-      g3.gaugeLabel('ENG 2 TQ').y(-33),
-      g3.indicatePointer().shape('rondel')
-    );
+    // Engine torque (% proxy)
+    const tqScale = d3.scaleLinear().domain([0, 50]).range([210, 510]);
+    const tq1 = g3.gauge()
+      .metric('tq1').unit('percent')
+      .measure(tqScale)
+      .append(
+        g3.gaugeFace(),
+        g3.axisTicks().step(2),
+        g3.axisTicks().step(10).size(15).style('stroke-width: 2'),
+        g3.axisLabels().step(10).inset(30),
+        g3.gaugeLabel('ENG 1 TQ').y(-33),
+        g3.indicatePointer().shape('rondel')
+      );
+    const tq2 = g3.gauge()
+      .metric('tq2').unit('percent')
+      .measure(tqScale)
+      .append(
+        g3.gaugeFace(),
+        g3.axisTicks().step(2),
+        g3.axisTicks().step(10).size(15).style('stroke-width: 2'),
+        g3.axisLabels().step(10).inset(30),
+        g3.gaugeLabel('ENG 2 TQ').y(-33),
+        g3.indicatePointer().shape('rondel')
+      );
 
-  // Place gauges
-  const put = g3.put();
-  put.x(160).y(row1y).scale(1.2).append(gaugeTAS);
-  put.x(480).y(row1y).scale(1.2).append(gaugeALT);
-  put.x(800).y(row1y).scale(1.2).append(gaugeVSI);
-  put.x(1120).y(row1y).scale(1.2).append(g3.gauge().append(g3.gaugeFace(), g3.gaugeLabel(''))); // spacer aesthetic
+    // Place gauges
+    const put = g3.put();
+    put.x(160).y(row1y).scale(1.2).append(gaugeTAS);
+    put.x(480).y(row1y).scale(1.2).append(gaugeALT);
+    put.x(800).y(row1y).scale(1.2).append(gaugeVSI);
+    put.x(1120).y(row1y).scale(1.2).append(g3.gauge().append(g3.gaugeFace(), g3.gaugeLabel(''))); // spacer aesthetic
 
-  put.x(320).y(row2y).scale(1.2).append(tq1);
-  put.x(640).y(row2y).scale(1.2).append(tq2);
+    put.x(320).y(row2y).scale(1.2).append(tq1);
+    put.x(640).y(row2y).scale(1.2).append(tq2);
 
-  // mount
-  d3.select(host).call(panel.append(put));
+    // mount
+    d3.select(host).call(panel.append(put));
+  }
 
   // Controls/dom
   const playBtn = document.getElementById('btn-play');
@@ -102,7 +104,6 @@
   // charts + stats DOM
   const yLeftSel = document.getElementById('yLeft');
   const yRightSel = document.getElementById('yRight');
-  const chartSvg = d3.select('#chart');
   const legendEl = document.getElementById('chart-legend');
   const smoothEl = document.getElementById('smooth');
   const commsBubble = document.getElementById('comms-bubble');
@@ -129,18 +130,92 @@
 
   // d3 is provided via script tag
 
-  // CSV parsing
+  // CSV parsing with fallback if PapaParse is unavailable
   function loadCSV() {
-    return new Promise((resolve, reject) => {
-      Papa.parse('Data.csv', {
-        header: true,
-        dynamicTyping: true,
-        skipEmptyLines: true,
-        download: true,
-        complete: (res) => resolve(res.data),
-        error: reject
+    // Preferred: PapaParse (robust, handles quotes and edge-cases)
+    if (window.Papa && typeof Papa.parse === 'function') {
+      return new Promise((resolve, reject) => {
+        Papa.parse('Data.csv', {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true,
+          download: true,
+          complete: (res) => resolve(res.data),
+          error: reject
+        });
       });
-    });
+    }
+    // Fallback: fetch + local CSV parser (handles quotes, embedded commas, escaped quotes)
+    return fetch('Data.csv')
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to load Data.csv');
+        return r.text();
+      })
+      .then(txt => parseCsvTextToObjects(txt));
+  }
+
+  function parseCsvTextToObjects(text) {
+    const rows = parseCsv(text);
+    if (!rows.length) return [];
+    const header = rows[0];
+    const out = [];
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r || r.length === 0 || (r.length === 1 && r[0].trim() === '')) continue;
+      const obj = {};
+      for (let j = 0; j < header.length; j++) obj[header[j]] = r[j] ?? '';
+      coerceKnownNumericFields(obj);
+      out.push(obj);
+    }
+    return out;
+  }
+
+  function coerceKnownNumericFields(obj) {
+    const numeric = new Set([
+      'TAS','Air Pressure','Altitude Radar','Eng 1 Torque','Eng 2 Torque','Ground Speed',
+      'Local Hour','Local Minute','Local Second','Vertical Speed','Ai Pressure'
+    ]);
+    for (const k of numeric) if (k in obj) obj[k] = toNum(obj[k]);
+    return obj;
+  }
+
+  function toNum(v) {
+    if (typeof v === 'number') return v;
+    if (v == null) return NaN;
+    const s = ('' + v).trim();
+    if (s === '') return NaN;
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  // Minimal CSV parser supporting quotes, embedded commas and escaped quotes
+  function parseCsv(text) {
+    const rows = [];
+    let field = '';
+    let row = [];
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '"') {
+        if (inQuotes && text[i+1] === '"') { field += '"'; i++; }
+        else { inQuotes = !inQuotes; }
+      } else if (ch === ',' && !inQuotes) {
+        row.push(field); field = '';
+      } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+        // finalize row at newline; skip bare \r (Windows) by peeking next char
+        if (ch === '\r' && text[i+1] === '\n') { /* skip, will be handled by next loop */ }
+        row.push(field); field = '';
+        rows.push(row); row = [];
+        // skip standalone \r sequences
+        if (ch === '\r' && text[i+1] !== '\n') { /* already handled */ }
+      } else {
+        field += ch;
+      }
+    }
+    // flush last field/row
+    row.push(field);
+    if (row.length && !(row.length === 1 && row[0].trim() === '')) rows.push(row);
+    return rows.map(r => r.map(s => s));
   }
 
   // Lightweight timeline parser (from cached md already in project — we’ll fetch content if present)
@@ -235,12 +310,10 @@
   }
 
   function computeAltitude(row) {
+    // Use radio altimeter as the authoritative source
     const ar = row['Altitude Radar'];
     if (Number.isFinite(ar) && ar >= 0) return ar;
-    const ap = row['Ai Pressure'];
-    if (Number.isFinite(ap)) return ap;
-    const ap2 = row['Air Pressure'];
-    if (Number.isFinite(ap2)) return ap2;
+    // If unavailable or flagged negative, report 0 (do not fall back to pressure for the ALT gauge)
     return 0;
   }
 
@@ -394,9 +467,12 @@
     if (records.length) updateStats(records[0], tMin);
   }
 
-  // d3 minimal shims via existing d3 from g3 bundle
-  function d3Ready() { return !!window.d3; }
-  (function waitD3(){ if (d3Ready()) init(); else setTimeout(waitD3, 50); })();
+  // Wait for libraries, then create gauges and initialize data-driven UI
+  function libsReady() { return !!(window.d3 && window.g3); }
+  (function waitLibs(){
+    if (libsReady()) { try { createGauges(); } catch(e) { console.error(e); } init(); }
+    else setTimeout(waitLibs, 50);
+  })();
 })();
 
 // Charting helpers (scopes variables inside closure)
