@@ -19,13 +19,24 @@ This project replays a UH-60M flight with synchronized instruments, charts, a ti
 
 ### Requirements
 - Modern browser (Chrome/Edge/Firefox/Safari)
-- Optional internet for CDNs (D3, Leaflet). If offline, use the simple static server instructions below; the app has a CSV parsing fallback built-in.
+- Required data files next to `dashboard.html`: `Data.csv` and `MOJO69 Flight Path.kml`
+- One of the following installed and on your PATH (environment must be ready before running):
+  - Python 3.9+ (recommended for the simplest built-in HTTP server)
+  - Node.js 18+ and npm 9+
+- Internet access if using CDN assets (D3, Leaflet) and online map tiles. If offline, see the notes below for using a local static server and local copies of CDN assets; the app includes a CSV parsing fallback when PapaParse is unavailable.
 
-### Run locally
-1. Start a static server from the project root:
-   - Python 3: `python3 -m http.server 8000 --directory /workspace`
-   - Node: `npx http-server -p 8000 /workspace --silent`
-2. Open `http://localhost:8000/dashboard.html` in your browser.
+### Quick start (CLI server)
+1. Open a terminal and change to the repository root (this folder).
+2. Verify your environment is ready:
+   - Python: `python3 --version` (or on Windows PowerShell: `py -3 --version`)
+   - Node/npm (optional): `node -v && npm -v`
+3. Start a local HTTP server from the project root (pick ONE option):
+   - Python (Linux/macOS): `python3 -m http.server 8000 --directory .`
+   - Python (Windows PowerShell): `py -3 -m http.server 8000 --directory .`
+   - Node via npx: `npx http-server -p 8000 . --silent`
+     - If `npx` is blocked or unavailable: `npm i -g http-server` then `http-server -p 8000 . --silent`
+4. In your browser, open: `http://localhost:8000/dashboard.html`
+   - Ensure `Data.csv` and `MOJO69 Flight Path.kml` are located beside `dashboard.html` (repo root by default).
 
 ### Usage
 - Press Play (▶) to start/stop playback; Spacebar toggles play/pause.
@@ -48,6 +59,12 @@ This project replays a UH-60M flight with synchronized instruments, charts, a ti
 - Charts and live stats mirror the same fields as the gauges.
 
 ### Troubleshooting
+- Server won’t start or port busy:
+  - Choose another port, e.g., `python3 -m http.server 8080 --directory .` then open `http://localhost:8080/dashboard.html`.
+- `python3` not found on Windows:
+  - Use `py -3 -m http.server 8000 --directory .` instead.
+- `npx` prompts or is blocked by policy:
+  - Install once globally: `npm i -g http-server` and run `http-server -p 8000 . --silent`, or use Python’s built-in server.
 - Blank page or controls don’t respond:
   - Load via `http://` using a local server (not `file://`).
   - Check the browser console for errors loading `Data.csv` or `MOJO69 Flight Path.kml`.
