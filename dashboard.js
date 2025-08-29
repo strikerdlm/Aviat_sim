@@ -6,41 +6,13 @@
   // panel will create and set g3.activeController internally
 
   function createGauges() {
-    // Add full "T" with attitude (AI), airspeed (ASI), altimeter (ALT), heading (HDG)
+    // Robust creation: prefer contrib "T" panel, fallback to basic gauges if contrib unavailable
+    const hasContrib = !!(g3 && g3.contrib && g3.contrib.nav && g3.contrib.nav.attitude && g3.contrib.nav.heading && g3.contrib.nav.VSI && g3.contrib.nav.altitude);
     const panel = g3.panel().width(1280).height(620).smooth(true).grid(false);
 
-    const rowTopY = 200, rowBottomY = 480;
+    const rowTopY = 210, rowBottomY = 470;
 
-    // Attitude (center top)
-    const gaugeAI = g3.contrib.nav.attitude.generic();
-
-    // Airspeed indicator (left top) – reuse TAS for metric source
-    const gaugeASI = g3.gauge()
-      .metric('tas')
-      .unit('knot')
-      .measure(d3.scaleLinear().domain([0, 200]).range([30, 350]))
-      .append(
-        g3.gaugeFace(),
-        g3.axisTicks().step(10).size(12).style('stroke-width: 2'),
-        g3.axisLabels().step(20).inset(30),
-        g3.gaugeLabel('ASI (kt)').y(-33),
-        g3.put().y(10).append(
-          g3.indicateText().format(v => Math.round(v)).size(20)
-        ),
-        g3.indicatePointer().shape('needle')
-      );
-
-    // Altimeter (right top) – based on radio altitude range
-    const gaugeALT = g3.contrib.nav.altitude.generic()
-      .metric('altitude');
-
-    // Heading (bottom center)
-    const gaugeHDG = g3.contrib.nav.heading.generic();
-
-    // Vertical Speed (bottom left)
-    const gaugeVSI = g3.contrib.nav.VSI.generic().metric('vs');
-
-    // Engine torque – smaller bottom-right cluster
+    // Shared torque gauges
     const tqScale = d3.scaleLinear().domain([0, 50]).range([210, 510]);
     const tq1 = g3.gauge()
       .metric('tq1').unit('percent')
@@ -65,17 +37,87 @@
         g3.indicatePointer().shape('rondel')
       );
 
-    // Place gauges
-    const layout = g3.put()
-      .append(
-        g3.put().x(360).y(rowTopY).scale(1.2).append(gaugeASI),
-        g3.put().x(760).y(rowTopY).scale(1.1).append(gaugeAI),
-        g3.put().x(1120).y(rowTopY).scale(1.0).append(gaugeALT),
-        g3.put().x(520).y(rowBottomY).scale(1.0).append(gaugeVSI),
-        g3.put().x(820).y(rowBottomY).scale(1.0).append(gaugeHDG),
-        g3.put().x(1040).y(rowBottomY).scale(0.85).append(tq1),
-        g3.put().x(1200).y(rowBottomY).scale(0.85).append(tq2)
+    let layout;
+    if (hasContrib) {
+      const gaugeAI = g3.contrib.nav.attitude.generic();
+      const gaugeALT = g3.contrib.nav.altitude.generic().metric('altitude');
+      const gaugeHDG = g3.contrib.nav.heading.generic();
+      const gaugeVSI = g3.contrib.nav.VSI.generic().metric('vs');
+      const gaugeASI = g3.gauge()
+        .metric('tas')
+        .unit('knot')
+        .measure(d3.scaleLinear().domain([0, 200]).range([30, 350]))
+        .append(
+          g3.gaugeFace(),
+          g3.axisTicks().step(10).size(12).style('stroke-width: 2'),
+          g3.axisLabels().step(20).inset(30),
+          g3.gaugeLabel('ASI (kt)').y(-33),
+          g3.put().y(10).append(g3.indicateText().format(v => Math.round(v)).size(20)),
+          g3.indicatePointer().shape('needle')
+        );
+      layout = g3.put().append(
+        g3.put().x(320).y(rowTopY).scale(0.95).append(gaugeASI),
+        g3.put().x(720).y(rowTopY).scale(0.95).append(gaugeAI),
+        g3.put().x(1060).y(rowTopY).scale(0.9).append(gaugeALT),
+        g3.put().x(520).y(rowBottomY).scale(0.95).append(gaugeVSI),
+        g3.put().x(820).y(rowBottomY).scale(0.95).append(gaugeHDG),
+        g3.put().x(1040).y(rowBottomY).scale(0.7).append(tq1),
+        g3.put().x(1200).y(rowBottomY).scale(0.7).append(tq2)
       );
+    } else {
+      // Fallback: TAS, ALT, VSI + torques (no AI/HDG), to avoid blocking the rest of the dashboard
+      const gaugeTAS = g3.gauge()
+        .metric('tas').unit('knot')
+        .measure(d3.scaleLinear().domain([0, 200]).range([30, 350]))
+        .append(
+          g3.gaugeFace(),
+          g3.axisTicks().step(10).size(12).style('stroke-width: 2'),
+          g3.axisLabels().step(20).inset(30),
+          g3.gaugeLabel('TAS (kt)').y(-33),
+          g3.put().y(10).append(g3.indicateText().format(v => Math.round(v)).size(20)),
+          g3.indicatePointer().shape('needle')
+        );
+      const gaugeALTbasic = g3.gauge()
+        .metric('altitude').unit('ft')
+        .measure(d3.scaleLinear().domain([0, 1500]).range([0, 360]))
+        .append(
+          g3.gaugeFace(),
+          g3.axisTicks().step(50),
+          g3.axisTicks().step(250).size(15).style('stroke-width: 2'),
+          g3.axisLabels().step(250).format(v => Math.round(v/100)).size(18),
+          g3.gaugeLabel('ALT (ft)').y(-33),
+          g3.put().y(10).append(g3.indicateText().format(v => Math.round(v)).size(20)),
+          g3.indicatePointer().shape('needle')
+        );
+      const gaugeVSIbasic = g3.gauge()
+        .metric('vs').unit('ft/min')
+        .measure(d3.scaleLinear().domain([-2000, 2000]).range([90, 450]))
+        .append(
+          g3.gaugeFace(),
+          g3.axisTicks().step(200).size(6),
+          g3.axisTicks().step(1000).size(14).style('stroke-width: 2'),
+          g3.axisLabels().step(1000).format(v => Math.abs(v/100)).size(16),
+          g3.gaugeLabel('VSI').y(-25).size(12),
+          g3.put().y(8).append(g3.indicateText().format(v => Math.round(v)).size(18)),
+          g3.indicatePointer().shape('needle').clamp([-1950, 1950])
+        );
+      layout = g3.put().append(
+        g3.put().x(360).y(rowTopY).scale(1.0).append(gaugeTAS),
+        g3.put().x(860).y(rowTopY).scale(0.95).append(gaugeALTbasic),
+        g3.put().x(620).y(rowBottomY).scale(0.95).append(gaugeVSIbasic),
+        g3.put().x(1040).y(rowBottomY).scale(0.75).append(tq1),
+        g3.put().x(1200).y(rowBottomY).scale(0.75).append(tq2)
+      );
+      // Attempt upgrade when contrib becomes available
+      setTimeout(() => {
+        try {
+          if (g3 && g3.contrib && g3.contrib.nav) {
+            d3.select(host).selectAll('*').remove();
+            createGauges();
+          }
+        } catch {}
+      }, 500);
+    }
 
     d3.select(host).call(panel.append(layout));
   }
@@ -457,10 +499,10 @@
     if (records.length) updateStats(records[0], tMin);
   }
 
-  // Wait for libraries, then create gauges and initialize data-driven UI
+  // Wait for libraries, then bring up gauges and the rest of UI
   function libsReady() { return !!(window.d3 && window.g3); }
   (function waitLibs(){
-    if (libsReady()) { try { createGauges(); } catch(e) { console.error(e); } init(); syncLayoutSizes(); setupLayoutObservers(); }
+    if (libsReady()) { try { createGauges(); } catch(e) { console.error(e); } try { init(); } catch(e) { console.error(e); } syncLayoutSizes(); setupLayoutObservers(); }
     else setTimeout(waitLibs, 50);
   })();
 })();

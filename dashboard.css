@@ -53,7 +53,7 @@ body {
 /* Make gauges scale to container width for better spacing */
 #gauges svg { width: 100%; height: auto; display: block; }
 
-.context { grid-column: 2 / 3; grid-row: 1 / 2; display: grid; gap: 16px; }
+.context { grid-column: 2 / 3; grid-row: 1 / 2; display: grid; gap: 16px; overflow: auto; align-content: start; }
 .card {
 	background: var(--card);
 	border: 1px solid #21262d;
@@ -156,7 +156,7 @@ svg .g3-pointer-hub { fill: #111; stroke: #e5e7eb; stroke-width: 1; }
 	border-radius: 12px;
 	padding: 8px;
 }
-#map { height: 620px; border-radius: 8px; border: 1px solid #242b33; }
+#map { height: 520px; border-radius: 8px; border: 1px solid #242b33; }
 
 /* Comms bubble */
 .comms-bubble {
