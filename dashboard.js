@@ -8,9 +8,9 @@
   function createGauges() {
     // Robust creation: prefer contrib "T" panel, fallback to basic gauges if contrib unavailable
     const hasContrib = !!(g3 && g3.contrib && g3.contrib.nav && g3.contrib.nav.attitude && g3.contrib.nav.heading && g3.contrib.nav.VSI && g3.contrib.nav.altitude);
-    const panel = g3.panel().width(1280).height(620).smooth(true).grid(false);
+    const panel = g3.panel().width(950).height(380).smooth(true).grid(false);
 
-    const rowTopY = 210, rowBottomY = 470;
+    const rowTopY = 120, rowBottomY = 260;
 
     // Shared torque gauges
     const tqScale = d3.scaleLinear().domain([0, 50]).range([210, 510]);
@@ -56,13 +56,13 @@
           g3.indicatePointer().shape('needle')
         );
       layout = g3.put().append(
-        g3.put().x(320).y(rowTopY).scale(0.95).append(gaugeASI),
-        g3.put().x(720).y(rowTopY).scale(0.95).append(gaugeAI),
-        g3.put().x(1060).y(rowTopY).scale(0.9).append(gaugeALT),
-        g3.put().x(520).y(rowBottomY).scale(0.95).append(gaugeVSI),
-        g3.put().x(820).y(rowBottomY).scale(0.95).append(gaugeHDG),
-        g3.put().x(1040).y(rowBottomY).scale(0.7).append(tq1),
-        g3.put().x(1200).y(rowBottomY).scale(0.7).append(tq2)
+        g3.put().x(120).y(rowTopY).scale(0.65).append(gaugeASI),
+        g3.put().x(340).y(rowTopY).scale(0.65).append(gaugeAI),
+        g3.put().x(560).y(rowTopY).scale(0.6).append(gaugeALT),
+        g3.put().x(200).y(rowBottomY).scale(0.65).append(gaugeVSI),
+        g3.put().x(420).y(rowBottomY).scale(0.65).append(gaugeHDG),
+        g3.put().x(620).y(rowBottomY).scale(0.5).append(tq1),
+        g3.put().x(750).y(rowBottomY).scale(0.5).append(tq2)
       );
     } else {
       // Fallback: TAS, ALT, VSI + torques (no AI/HDG), to avoid blocking the rest of the dashboard
@@ -102,11 +102,11 @@
           g3.indicatePointer().shape('needle').clamp([-1950, 1950])
         );
       layout = g3.put().append(
-        g3.put().x(360).y(rowTopY).scale(1.0).append(gaugeTAS),
-        g3.put().x(860).y(rowTopY).scale(0.95).append(gaugeALTbasic),
-        g3.put().x(620).y(rowBottomY).scale(0.95).append(gaugeVSIbasic),
-        g3.put().x(1040).y(rowBottomY).scale(0.75).append(tq1),
-        g3.put().x(1200).y(rowBottomY).scale(0.75).append(tq2)
+        g3.put().x(140).y(rowTopY).scale(0.7).append(gaugeTAS),
+        g3.put().x(480).y(rowTopY).scale(0.65).append(gaugeALTbasic),
+        g3.put().x(310).y(rowBottomY).scale(0.65).append(gaugeVSIbasic),
+        g3.put().x(620).y(rowBottomY).scale(0.5).append(tq1),
+        g3.put().x(750).y(rowBottomY).scale(0.5).append(tq2)
       );
       // Attempt upgrade when contrib becomes available
       setTimeout(() => {
@@ -123,7 +123,6 @@
   }
 
   // Controls/dom
-  const playBtn = document.getElementById('btn-play');
   const speedSel = document.getElementById('speed');
   const slider = document.getElementById('time');
   const markers = document.getElementById('markers');
@@ -153,9 +152,6 @@
   let timeline = [];
   let highlights = [];
   let tMin = 0, tMax = 0;
-  let playing = false;
-  let rafId = null;
-  let lastTs = 0;
 
   // d3 is provided via script tag
 
@@ -204,7 +200,12 @@
       'TAS','Air Pressure','Altitude Radar','Eng 1 Torque','Eng 2 Torque','Ground Speed',
       'Local Hour','Local Minute','Local Second','Vertical Speed','Ai Pressure'
     ]);
-    for (const k of numeric) if (k in obj) obj[k] = toNum(obj[k]);
+    for (const k of numeric) {
+      if (k in obj) {
+        const val = toNum(obj[k]);
+        obj[k] = Number.isFinite(val) ? val : 0;
+      }
+    }
     return obj;
   }
 
@@ -247,20 +248,49 @@
     return rows.map(r => r.map(s => s));
   }
 
-  // Lightweight timeline parser (from cached md already in project — we’ll fetch content if present)
+  // Enhanced timeline parser for Spanish markdown with multiple time formats
   async function loadTimeline() {
     try {
       const resp = await fetch('Línea de tiempo.md');
       if (!resp.ok) return [];
       const txt = await resp.text();
-      const lines = txt.split(/\n/).filter(l => /^-\s*\d\d:\d\d:\d\d/.test(l));
-      return lines.map(l => {
-        const m = l.match(/^(?:-\s*)(\d\d):(\d\d):(\d\d)\s+—\s*(.*)$/);
-        if (!m) return null;
-        const hh = +m[1], mm = +m[2], ss = +m[3];
-        return { t: hh*3600 + mm*60 + ss, text: m[4] };
-      }).filter(Boolean);
-    } catch { return []; }
+      console.log('Timeline file loaded, parsing events...');
+      
+      const lines = txt.split(/\n/);
+      const events = [];
+      
+      for (const line of lines) {
+        // Match various time formats in the Spanish timeline
+        // Format: "- 20:16:32 — Event text"
+        let m = line.match(/^-\s*(\d\d):(\d\d):(\d\d)\s*—\s*(.+)$/);
+        if (m) {
+          const hh = +m[1], mm = +m[2], ss = +m[3];
+          events.push({ t: hh*3600 + mm*60 + ss, text: m[4].trim() });
+          continue;
+        }
+        
+        // Format: "  - 20:18:50 — Event text"
+        m = line.match(/^\s+-\s*(\d\d):(\d\d):(\d\d)\s*—\s*(.+)$/);
+        if (m) {
+          const hh = +m[1], mm = +m[2], ss = +m[3];
+          events.push({ t: hh*3600 + mm*60 + ss, text: m[4].trim() });
+          continue;
+        }
+        
+        // Format: "- 20:18:48 — Event. Alt ~73→65→63 ft"
+        m = line.match(/^\s*-\s*(\d\d):(\d\d):(\d\d)\s*—\s*([^.]+(?:\.\s*Alt[^.]*)?)/);
+        if (m) {
+          const hh = +m[1], mm = +m[2], ss = +m[3];
+          events.push({ t: hh*3600 + mm*60 + ss, text: m[4].trim() });
+        }
+      }
+      
+      console.log(`Parsed ${events.length} timeline events`);
+      return events.sort((a, b) => a.t - b.t);
+    } catch (err) { 
+      console.error('Timeline loading failed:', err);
+      return []; 
+    }
   }
 
   function timeToLabel(sec) {
@@ -284,18 +314,26 @@
   }
 
   function renderTranscript(nowSec) {
-    // Show transcript lines within +- 10s window, highlight current second matches
-    const near = records.filter(r => Math.abs(r._t - nowSec) <= 10 && r.Transcripts);
+    // Show transcript lines within +- 15s window, highlight current second matches
+    const near = records.filter(r => Math.abs(r._t - nowSec) <= 15 && r.Transcripts && r.Transcripts.trim());
     transcriptEl.innerHTML = '';
     let latestSaid = null;
+    
     near.forEach(r => {
       const div = document.createElement('div');
-      div.className = 'line' + (r._t === nowSec ? ' now' : '');
-      const time = `${r.Local_Hour?.toString().padStart(2,'0') ?? '--'}:${r.Local_Minute?.toString().padStart(2,'0') ?? '--'}:${r.Local_Second?.toString().padStart(2,'0') ?? '--'}`;
-      div.innerHTML = `<div class="t">${time}</div><div class="crew">${r.Crew || ''}</div><div class="say">${(r.Transcripts||'').replace(/^"+|"+$/g,'')}</div>`;
+      div.className = 'line' + (Math.abs(r._t - nowSec) <= 1 ? ' now' : '');
+      const time = `${(r.Local_Hour||0).toString().padStart(2,'0')}:${(r.Local_Minute||0).toString().padStart(2,'0')}:${(r.Local_Second||0).toString().padStart(2,'0')}`;
+      
+      // Clean up transcript text - remove quotes and extra whitespace
+      let transcript = (r.Transcripts || '').replace(/^["'"]+|["'"]+$/g, '').trim();
+      let crew = (r.Crew || '').trim() || 'Unknown';
+      
+      div.innerHTML = `<div class="t">${time}</div><div class="crew">${crew}</div><div class="say">${transcript}</div>`;
       transcriptEl.appendChild(div);
-      if (Math.abs((r._t||0) - nowSec) <= 1) latestSaid = r;
+      
+      if (Math.abs((r._t||0) - nowSec) <= 2) latestSaid = r;
     });
+    
     renderCommsBubble(latestSaid);
   }
 
@@ -389,22 +427,14 @@
     }
   }
 
-  function tickPlay() {
-    if (!playing) return;
-    const now = performance.now();
-    const dt = (now - lastTs)/1000 * parseFloat(speedSel.value);
-    lastTs = now;
-    let t = +slider.value + dt;
-    if (t >= tMax) { t = tMax; playing = false; playBtn.textContent = '▶'; }
-    slider.value = Math.round(t);
-    onSlider();
-    rafId = requestAnimationFrame(tickPlay);
-  }
+  // Remove play functionality - slider only
 
   function onSlider() {
     const sec = +slider.value;
+    console.log(`Slider moved to: ${sec} (${timeToLabel(sec)})`);
     setClock(sec);
     const row = recordsBySecond.get(sec) || nearestRow(sec);
+    console.log('Found row:', row ? `${row.TAS || 0} kt, ${row['Altitude Radar'] || 0} ft` : 'none');
     if (row) sendMetrics(row);
     renderTranscript(sec);
     updateEvent(sec);
@@ -425,7 +455,10 @@
   const recordsBySecond = new Map();
 
   async function init() {
+    console.log('Loading CSV data...');
     const csv = await loadCSV();
+    console.log(`Loaded ${csv.length} CSV records`);
+    
     records = csv.map(r => {
       // normalize keys (remove spaces)
       const rr = Object.assign({}, r, {
@@ -441,6 +474,8 @@
 
     tMin = records[0]?._t || 0;
     tMax = records[records.length-1]?._t || tMin;
+    console.log(`Time range: ${timeToLabel(tMin)} to ${timeToLabel(tMax)}`);
+    
     slider.min = tMin; slider.max = tMax; slider.value = tMin;
     setClock(tMin);
 
@@ -461,21 +496,29 @@
 
     // Map init
     setupMap();
+    
+    // Build heading lookup after map coordinates are loaded
+    setTimeout(() => {
+      if (_map.coords && _map.coords.length > 0) {
+        buildHeadingLookup();
+      }
+    }, 1000);
 
-    // bind controls
-    slider.addEventListener('input', onSlider);
-    playBtn.addEventListener('click', () => {
-      playing = !playing;
-      playBtn.textContent = playing ? '❚❚' : '▶';
-      lastTs = performance.now();
-      if (playing) rafId = requestAnimationFrame(tickPlay); else cancelAnimationFrame(rafId);
-    });
+    // bind controls with multiple event types for browser compatibility
+    if (slider) {
+      slider.addEventListener('input', onSlider);
+      slider.addEventListener('change', onSlider); // IE fallback
+      slider.addEventListener('mouseup', onSlider); // Mouse release
+      slider.addEventListener('touchend', onSlider); // Touch release
+      console.log('Slider events bound, range:', slider.min, 'to', slider.max);
+    } else {
+      console.error('Slider element not found!');
+    }
 
     // keyboard shortcuts
     window.addEventListener('keydown', (e) => {
       const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (e.code === 'Space') { e.preventDefault(); playBtn.click(); }
       if (e.code === 'ArrowRight') { e.preventDefault(); step(+ (e.shiftKey ? 10 : 1)); }
       if (e.code === 'ArrowLeft') { e.preventDefault(); step(- (e.shiftKey ? 10 : 1)); }
     });
@@ -487,23 +530,60 @@
     }
 
     // charts
-    setupChart();
-    drawChart();
-    updateCursor(tMin);
-    if (yLeftSel) yLeftSel.addEventListener('change', () => { drawChart(); updateCursor(+slider.value); });
-    if (yRightSel) yRightSel.addEventListener('change', () => { drawChart(); updateCursor(+slider.value); });
-    if (smoothEl) smoothEl.addEventListener('input', () => { drawChart(); updateCursor(+slider.value); });
+    try {
+      setupChart();
+      drawChart();
+      updateCursor(tMin);
+      console.log('Charts initialized');
+      if (yLeftSel) yLeftSel.addEventListener('change', () => { drawChart(); updateCursor(+slider.value); });
+      if (yRightSel) yRightSel.addEventListener('change', () => { drawChart(); updateCursor(+slider.value); });
+      if (smoothEl) smoothEl.addEventListener('input', () => { drawChart(); updateCursor(+slider.value); });
+    } catch (e) {
+      console.error('Chart initialization failed:', e);
+    }
 
     // initial draw with first record
     if (records.length) sendMetrics(records[0]);
     if (records.length) updateStats(records[0], tMin);
   }
 
-  // Wait for libraries, then bring up gauges and the rest of UI
-  function libsReady() { return !!(window.d3 && window.g3); }
+  // Wait for libraries and DOM, then bring up gauges and the rest of UI
+  function libsReady() { 
+    return !!(window.d3 && window.g3 && document.getElementById('gauges') && document.getElementById('time')); 
+  }
+  
+  function initializeAll() {
+    console.log('Initializing dashboard...');
+    try { 
+      createGauges(); 
+      console.log('Gauges created');
+    } catch(e) { 
+      console.error('Gauge creation failed:', e); 
+    }
+    
+    try { 
+      init(); 
+      console.log('Data initialization complete');
+    } catch(e) { 
+      console.error('Data initialization failed:', e); 
+    }
+    
+    try {
+      syncLayoutSizes(); 
+      setupLayoutObservers();
+      console.log('Layout observers set up');
+    } catch(e) {
+      console.error('Layout setup failed:', e);
+    }
+  }
+  
   (function waitLibs(){
-    if (libsReady()) { try { createGauges(); } catch(e) { console.error(e); } try { init(); } catch(e) { console.error(e); } syncLayoutSizes(); setupLayoutObservers(); }
-    else setTimeout(waitLibs, 50);
+    if (libsReady()) { 
+      initializeAll();
+    } else {
+      console.log('Waiting for libraries and DOM...');
+      setTimeout(waitLibs, 100);
+    }
   })();
 })();
 
@@ -725,24 +805,45 @@ let _map = { map: null, path: null, marker: null, coords: [] };
 
 function setupMap() {
   const el = document.getElementById('map');
-  if (!el || typeof L === 'undefined') return;
-  if (_map.map) return;
-  _map.map = L.map(el, { zoomControl: true, attributionControl: false });
-  const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19
-  });
-  tiles.addTo(_map.map);
+  console.log('Setting up map, element:', el, 'Leaflet available:', typeof L !== 'undefined');
+  if (!el) {
+    console.error('Map element not found');
+    return;
+  }
+  if (typeof L === 'undefined') {
+    console.error('Leaflet not loaded');
+    return;
+  }
+  if (_map.map) {
+    console.log('Map already initialized');
+    return;
+  }
+  
+  try {
+    _map.map = L.map(el, { zoomControl: true, attributionControl: false });
+    const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19
+    });
+    tiles.addTo(_map.map);
+    console.log('Map initialized successfully');
+  } catch (err) {
+    console.error('Map initialization failed:', err);
+    return;
+  }
   // Load KML path via fetch (simple parser for coordinates)
   fetch('MOJO69 Flight Path.kml').then(r => r.text()).then(txt => {
     const coords = parseKmlCoordinates(txt);
     _map.coords = coords;
+    console.log(`Loaded ${coords.length} coordinates from KML`);
     if (coords.length) {
       const latlngs = coords.map(c => [c[1], c[0]]);
       _map.path = L.polyline(latlngs, { color: getColor('left') || '#58a6ff', weight: 3, opacity: 0.9 }).addTo(_map.map);
       _map.marker = L.circleMarker(latlngs[0], { radius: 5, color: '#fff', weight: 1, fillColor: '#ff6b6b', fillOpacity: 0.9 }).addTo(_map.map);
       _map.map.fitBounds(_map.path.getBounds(), { padding: [12,12] });
+      // Build heading lookup once coordinates are loaded
+      buildHeadingLookup();
     }
-  }).catch(()=>{});
+  }).catch((err)=>{ console.error('Failed to load KML:', err); });
 }
 
 function parseKmlCoordinates(txt) {
@@ -775,16 +876,43 @@ function updateMapPosition(sec) {
   if (_map.marker) _map.marker.setLatLng(latlng);
 }
 
-// Heading along KML path for current time
-function headingAtTime(sec) {
-  if (!_map.coords || _map.coords.length < 2) return 0;
+// Heading dictionary and calculation
+let headingLookup = new Map();
+
+function buildHeadingLookup() {
+  if (!_map.coords || _map.coords.length < 2) return;
   const t0 = (window.__tMin || 0), t1 = (window.__tMax || 1);
-  const frac = (sec - t0) / Math.max(1, (t1 - t0));
-  let idx = Math.max(0, Math.min(_map.coords.length - 2, Math.round(frac * (_map.coords.length - 2))));
-  // choose forward pair where possible
-  const c1 = _map.coords[idx];
-  const c2 = _map.coords[idx + 1];
-  return bearingFromLonLat(c1[0], c1[1], c2[0], c2[1]);
+  const totalTime = t1 - t0;
+  
+  headingLookup.clear();
+  
+  for (let i = 0; i < _map.coords.length - 1; i++) {
+    const timeAtPoint = t0 + (i / (_map.coords.length - 1)) * totalTime;
+    const c1 = _map.coords[i];
+    const c2 = _map.coords[i + 1];
+    const heading = bearingFromLonLat(c1[0], c1[1], c2[0], c2[1]);
+    headingLookup.set(Math.round(timeAtPoint), heading);
+  }
+}
+
+function headingAtTime(sec) {
+  if (headingLookup.size === 0) return 0;
+  
+  // Direct lookup
+  if (headingLookup.has(sec)) return headingLookup.get(sec);
+  
+  // Find nearest time with heading data
+  let bestTime = 0;
+  let bestDiff = Infinity;
+  for (const [time, heading] of headingLookup) {
+    const diff = Math.abs(time - sec);
+    if (diff < bestDiff) {
+      bestTime = time;
+      bestDiff = diff;
+    }
+  }
+  
+  return headingLookup.get(bestTime) || 0;
 }
 
 function bearingFromLonLat(lon1, lat1, lon2, lat2) {
@@ -805,11 +933,11 @@ function syncLayoutSizes() {
   const mapEl = document.getElementById('map');
   if (!g || !mapEl) return;
   const rect = g.getBoundingClientRect();
-  const h = Math.max(360, Math.round(rect.height));
+  const h = Math.max(350, Math.round(rect.height || 0) || 350);
   if (h && Math.abs((mapEl.offsetHeight||0) - h) > 2) {
     mapEl.style.height = h + 'px';
     if (_map && _map.map && typeof _map.map.invalidateSize === 'function') {
-      setTimeout(()=>{ try { _map.map.invalidateSize(); } catch {} }, 0);
+      setTimeout(()=>{ try { _map.map.invalidateSize(); } catch {} }, 100);
     }
   }
 }
