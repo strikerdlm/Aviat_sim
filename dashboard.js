@@ -6,13 +6,16 @@
   // panel will create and set g3.activeController internally
 
   function createGauges() {
-    // Layout gauges (two rows): Airspeed, Altitude, Vertical Speed, Engine Torques
+    // Add full "T" with attitude (AI), airspeed (ASI), altimeter (ALT), heading (HDG)
     const panel = g3.panel().width(1280).height(620).smooth(true).grid(false);
 
-    const row1y = 150, row2y = 450;
+    const rowTopY = 200, rowBottomY = 480;
 
-    // Airspeed (TAS)
-    const gaugeTAS = g3.gauge()
+    // Attitude (center top)
+    const gaugeAI = g3.contrib.nav.attitude.generic();
+
+    // Airspeed indicator (left top) – reuse TAS for metric source
+    const gaugeASI = g3.gauge()
       .metric('tas')
       .unit('knot')
       .measure(d3.scaleLinear().domain([0, 200]).range([30, 350]))
@@ -20,48 +23,24 @@
         g3.gaugeFace(),
         g3.axisTicks().step(10).size(12).style('stroke-width: 2'),
         g3.axisLabels().step(20).inset(30),
-        g3.gaugeLabel('TAS (kt)').y(-33),
+        g3.gaugeLabel('ASI (kt)').y(-33),
         g3.put().y(10).append(
           g3.indicateText().format(v => Math.round(v)).size(20)
         ),
-        g3.indicatePointer().shape('sword')
+        g3.indicatePointer().shape('needle')
       );
 
-    // Altitude (Radio Altimeter)
-    const gaugeALT = g3.gauge()
-      .metric('altitude')
-      .unit('ft')
-      .measure(d3.scaleLinear().domain([0, 1500]).range([0, 360]))
-      .append(
-        g3.gaugeFace(),
-        g3.axisTicks().step(50),
-        g3.axisTicks().step(250).size(15).style('stroke-width: 2'),
-        g3.axisLabels().step(250).format(v => Math.round(v/100)).size(18),
-        g3.gaugeLabel('ALT (ft)').y(-33),
-        g3.put().y(10).append(
-          g3.indicateText().format(v => Math.round(v)).size(20)
-        ),
-        g3.indicatePointer().shape('blade')
-      );
+    // Altimeter (right top) – based on radio altitude range
+    const gaugeALT = g3.contrib.nav.altitude.generic()
+      .metric('altitude');
 
-    // Vertical Speed (ft/min)
-    const gaugeVSI = g3.gauge()
-      .metric('vs')
-      .unit('ft/min')
-      .measure(d3.scaleLinear().domain([-2000, 2000]).range([90, 450]))
-      .append(
-        g3.gaugeFace(),
-        g3.axisTicks().step(200).size(6),
-        g3.axisTicks().step(1000).size(14).style('stroke-width: 2'),
-        g3.axisLabels().step(1000).format(v => Math.abs(v/100)).size(16),
-        g3.gaugeLabel('VSI').y(-25).size(12),
-        g3.put().y(8).append(
-          g3.indicateText().format(v => Math.round(v)).size(18)
-        ),
-        g3.indicatePointer().shape('sword').clamp([-1950, 1950])
-      );
+    // Heading (bottom center)
+    const gaugeHDG = g3.contrib.nav.heading.generic();
 
-    // Engine torque (% proxy)
+    // Vertical Speed (bottom left)
+    const gaugeVSI = g3.contrib.nav.VSI.generic().metric('vs');
+
+    // Engine torque – smaller bottom-right cluster
     const tqScale = d3.scaleLinear().domain([0, 50]).range([210, 510]);
     const tq1 = g3.gauge()
       .metric('tq1').unit('percent')
@@ -86,17 +65,18 @@
         g3.indicatePointer().shape('rondel')
       );
 
-    // Place gauges: each instrument gets its own positioned container
+    // Place gauges
     const layout = g3.put()
       .append(
-        g3.put().x(200).y(row1y).scale(1.25).append(gaugeTAS),
-        g3.put().x(640).y(row1y).scale(1.25).append(gaugeALT),
-        g3.put().x(1080).y(row1y).scale(1.25).append(gaugeVSI),
-        g3.put().x(520).y(row2y).scale(1.25).append(tq1),
-        g3.put().x(840).y(row2y).scale(1.25).append(tq2)
+        g3.put().x(360).y(rowTopY).scale(1.2).append(gaugeASI),
+        g3.put().x(760).y(rowTopY).scale(1.1).append(gaugeAI),
+        g3.put().x(1120).y(rowTopY).scale(1.0).append(gaugeALT),
+        g3.put().x(520).y(rowBottomY).scale(1.0).append(gaugeVSI),
+        g3.put().x(820).y(rowBottomY).scale(1.0).append(gaugeHDG),
+        g3.put().x(1040).y(rowBottomY).scale(0.85).append(tq1),
+        g3.put().x(1200).y(rowBottomY).scale(0.85).append(tq2)
       );
 
-    // mount
     d3.select(host).call(panel.append(layout));
   }
 
@@ -303,14 +283,17 @@
     const metrics = {
       latest: row._t,
       units: {
-        tas: 'knot', altitude: 'ft', vs: 'ft/min', tq1: 'percent', tq2: 'percent'
+        tas: 'knot', altitude: 'ft', vs: 'ft/min', tq1: 'percent', tq2: 'percent', heading: 'deg', roll: 'deg', pitch: 'deg'
       },
       metrics: {
         tas: +row.TAS || 0,
         altitude: computeAltitude(row),
         vs: +row['Vertical Speed'] || 0,
         tq1: +row['Eng 1 Torque'] || 0,
-        tq2: +row['Eng 2 Torque'] || 0
+        tq2: +row['Eng 2 Torque'] || 0,
+        heading: headingAtTime(row._t || 0),
+        roll: 0,
+        pitch: 0
       }
     };
     if (g3.activeController) g3.activeController(metrics, sel => sel.transition().duration(180));
@@ -477,7 +460,7 @@
   // Wait for libraries, then create gauges and initialize data-driven UI
   function libsReady() { return !!(window.d3 && window.g3); }
   (function waitLibs(){
-    if (libsReady()) { try { createGauges(); } catch(e) { console.error(e); } init(); }
+    if (libsReady()) { try { createGauges(); } catch(e) { console.error(e); } init(); syncLayoutSizes(); setupLayoutObservers(); }
     else setTimeout(waitLibs, 50);
   })();
 })();
@@ -748,6 +731,57 @@ function updateMapPosition(sec) {
   const c = _map.coords[idx];
   const latlng = [c[1], c[0]];
   if (_map.marker) _map.marker.setLatLng(latlng);
+}
+
+// Heading along KML path for current time
+function headingAtTime(sec) {
+  if (!_map.coords || _map.coords.length < 2) return 0;
+  const t0 = (window.__tMin || 0), t1 = (window.__tMax || 1);
+  const frac = (sec - t0) / Math.max(1, (t1 - t0));
+  let idx = Math.max(0, Math.min(_map.coords.length - 2, Math.round(frac * (_map.coords.length - 2))));
+  // choose forward pair where possible
+  const c1 = _map.coords[idx];
+  const c2 = _map.coords[idx + 1];
+  return bearingFromLonLat(c1[0], c1[1], c2[0], c2[1]);
+}
+
+function bearingFromLonLat(lon1, lat1, lon2, lat2) {
+  const toRad = (d) => d * Math.PI / 180;
+  const toDeg = (r) => r * 180 / Math.PI;
+  const φ1 = toRad(lat1), φ2 = toRad(lat2);
+  const Δλ = toRad(lon2 - lon1);
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  let θ = toDeg(Math.atan2(y, x));
+  if (!Number.isFinite(θ)) θ = 0;
+  return (θ + 360) % 360;
+}
+
+// Keep map height in sync with gauges/panel height
+function syncLayoutSizes() {
+  const g = document.getElementById('gauges');
+  const mapEl = document.getElementById('map');
+  if (!g || !mapEl) return;
+  const rect = g.getBoundingClientRect();
+  const h = Math.max(360, Math.round(rect.height));
+  if (h && Math.abs((mapEl.offsetHeight||0) - h) > 2) {
+    mapEl.style.height = h + 'px';
+    if (_map && _map.map && typeof _map.map.invalidateSize === 'function') {
+      setTimeout(()=>{ try { _map.map.invalidateSize(); } catch {} }, 0);
+    }
+  }
+}
+
+function setupLayoutObservers() {
+  const g = document.getElementById('gauges');
+  if ('ResizeObserver' in window && g) {
+    try {
+      const ro = new ResizeObserver(()=>{ syncLayoutSizes(); });
+      ro.observe(g);
+    } catch {}
+  } else {
+    window.addEventListener('resize', syncLayoutSizes);
+  }
 }
 
 // Simple symmetric moving-average kernel
