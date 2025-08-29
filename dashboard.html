@@ -25,6 +25,27 @@
     <section class="gauges">
       <div id="gauges" aria-label="Flight Instruments"></div>
       <div id="comms-bubble" class="comms-bubble" aria-live="polite" aria-atomic="true"></div>
+      <!-- Inline timeline stuck to the instrument panel -->
+      <div class="inline-timeline">
+        <div class="controls">
+          <button id="btn-play" title="Play/Pause" aria-label="Play/Pause">▶</button>
+          <label class="time-label"><span id="clock">--:--:--</span></label>
+          <div class="spacer"></div>
+          <label>Speed
+            <select id="speed">
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="2">2×</option>
+              <option value="4">4×</option>
+            </select>
+          </label>
+        </div>
+        <div class="slider-wrap">
+          <label for="time" class="visually-hidden">Time</label>
+          <input type="range" id="time" min="0" max="0" step="1" value="0" aria-label="Time" />
+          <div id="markers" class="markers" aria-hidden="true"></div>
+        </div>
+      </div>
     </section>
     <aside class="context" aria-label="Context">
       <div class="card">
@@ -58,25 +79,6 @@
       </div>
     </aside>
 
-    <section class="timeline">
-      <div class="controls">
-        <label class="time-label"><span id="clock">--:--:--</span></label>
-        <div class="spacer"></div>
-        <label>Speed
-          <select id="speed">
-            <option value="0.5">0.5×</option>
-            <option value="1" selected>1×</option>
-            <option value="2">2×</option>
-            <option value="4">4×</option>
-          </select>
-        </label>
-      </div>
-      <div class="slider-wrap">
-        <label for="time" class="visually-hidden">Time</label>
-        <input type="range" id="time" min="0" max="0" step="1" value="0" aria-label="Time" />
-        <div id="markers" class="markers" aria-hidden="true"></div>
-      </div>
-    </section>
 
     <section class="charts" aria-label="Flight Metrics">
       <div class="chart-controls">

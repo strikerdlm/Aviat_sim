@@ -8,7 +8,7 @@
   function createGauges() {
     // Robust creation: prefer contrib "T" panel, fallback to basic gauges if contrib unavailable
     const hasContrib = !!(g3 && g3.contrib && g3.contrib.nav && g3.contrib.nav.attitude && g3.contrib.nav.heading && g3.contrib.nav.VSI && g3.contrib.nav.altitude);
-    const panel = g3.panel().width(950).height(380).smooth(true).grid(false);
+    const panel = g3.panel().width(950).height(380).smooth(false).grid(false).interval(0);
 
     const rowTopY = 120, rowBottomY = 260;
 
@@ -123,6 +123,7 @@
   }
 
   // Controls/dom
+  const playBtn = document.getElementById('btn-play');
   const speedSel = document.getElementById('speed');
   const slider = document.getElementById('time');
   const markers = document.getElementById('markers');
@@ -152,6 +153,9 @@
   let timeline = [];
   let highlights = [];
   let tMin = 0, tMax = 0;
+  let playing = false;
+  let rafId = null;
+  let lastTs = 0;
 
   // d3 is provided via script tag
 
@@ -427,7 +431,17 @@
     }
   }
 
-  // Remove play functionality - slider only
+  function tickPlay() {
+    if (!playing) return;
+    const now = performance.now();
+    const dt = (now - lastTs)/1000 * parseFloat(speedSel.value);
+    lastTs = now;
+    let t = +slider.value + dt;
+    if (t >= tMax) { t = tMax; playing = false; playBtn.textContent = '▶'; }
+    slider.value = Math.round(t);
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
+    rafId = requestAnimationFrame(tickPlay);
+  }
 
   function onSlider() {
     const sec = +slider.value;
@@ -514,11 +528,22 @@
     } else {
       console.error('Slider element not found!');
     }
+    
+    if (playBtn) {
+      playBtn.addEventListener('click', () => {
+        playing = !playing;
+        playBtn.textContent = playing ? '❚❚' : '▶';
+        lastTs = performance.now();
+        if (playing) rafId = requestAnimationFrame(tickPlay); 
+        else cancelAnimationFrame(rafId);
+      });
+    }
 
     // keyboard shortcuts
     window.addEventListener('keydown', (e) => {
       const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.code === 'Space') { e.preventDefault(); if (playBtn) playBtn.click(); }
       if (e.code === 'ArrowRight') { e.preventDefault(); step(+ (e.shiftKey ? 10 : 1)); }
       if (e.code === 'ArrowLeft') { e.preventDefault(); step(- (e.shiftKey ? 10 : 1)); }
     });
