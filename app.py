@@ -61,6 +61,21 @@ def load_csv(csv_path: str) -> pd.DataFrame:
 
 
 @st.cache_data(show_spinner=False)
+def load_timeline_md(path: str) -> list:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except Exception:
+        return []
+    events = []
+    for ln in lines:
+        s = ln.strip()
+        if s.startswith("- ") and "—" in s:
+            events.append(s[2:])
+    return events
+
+
+@st.cache_data(show_spinner=False)
 def parse_kml_line_strings(kml_path: str) -> List[List[Tuple[float, float]]]:
     # Minimal KML parser for LineString coordinates
     # We avoid heavy deps; this extracts sequences inside
@@ -123,15 +138,20 @@ def echarts_theme_dark() -> dict:
 # Layout & sections
 # -----------------
 
+icon_path = "icon/icon.png"
 st.set_page_config(
     page_title="UH‑60M Flight Briefing",
-    page_icon="🚁",
+    page_icon=("icon.png" if os.path.exists("icon.png") else "🚁"),
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-st.title("UH‑60M Flight Briefing: MOJO 69")
-st.caption("Interactive analysis: time series, map path, and 3D model")
+st.title(
+    "Análisis de caso: Rendimiento Humano con Dispositivos de Visión Nocturna"
+)
+st.caption(
+    "Congreso Internacional de Escuelas de Helicópteros de Latinoamérica"
+)
 
 # Default data sources (hidden from sidebar)
 data_csv = "Data.csv"
@@ -141,7 +161,9 @@ stl_file = "UH-60_Blackhawk.stl"
 
 # Sidebar controls (no data source inputs)
 with st.sidebar:
-    st.markdown("### MOJO69")
+    if os.path.exists("icon.png"):
+        st.image("icon.png", use_column_width=True)
+    st.markdown("### MOJO69 🚁")
     try:
         from streamlit_stl import stl_from_file
         stl_from_file(
@@ -204,17 +226,20 @@ with st.sidebar:
         show_torques = False
     st.markdown("---")
     st.header("Panels")
-    show_transcripts = st.checkbox("Transcripts", value=True)
+    show_transcripts = st.checkbox("Transcripciones", value=True)
     pos_transcripts = st.selectbox(
-        "Transcripts position",
+        "Posición de transcripciones",
         ["Right column", "Below charts"],
         index=0,
     )
-    show_context = st.checkbox("Accident context", value=True)
+    show_context = st.checkbox("Contexto del accidente", value=True)
     pos_context = st.selectbox(
-        "Context position",
+        "Posición del contexto",
         ["Right column", "Below charts"],
         index=0,
+    )
+    show_timeline_panel = st.checkbox(
+        "Mostrar línea de tiempo (español)", value=True
     )
 
 
@@ -222,7 +247,7 @@ with st.sidebar:
 col_left, col_right = st.columns([2.2, 1.3], gap="large")
 
 with col_left:
-    st.subheader("Flight metrics")
+    st.subheader("Flight metrics ✈️")
     lo, hi = sel
     dff = df[(df['t_seconds'] >= lo) & (df['t_seconds'] <= hi)].copy()
     if smooth:
@@ -612,7 +637,22 @@ with col_right:
                 st.caption("No transcript column found in CSV.")
         st.markdown("---")
     if show_context and pos_context == "Right column":
-        st.subheader("Accident context")
+        st.subheader("Accident context 🛬")
+    if show_timeline_panel:
+        st.markdown("---")
+        st.subheader("Línea de tiempo ✈️")
+        events = load_timeline_md("Línea de tiempo.md")
+        if events:
+            st.markdown(
+                "<div style='max-height:420px; overflow:auto;"
+                " padding-right:8px'>",
+                unsafe_allow_html=True,
+            )
+            for ev in events:
+                st.markdown(f"- {ev}")
+            st.markdown("</div>", unsafe_allow_html=True)
+        else:
+            st.caption("No se encontró la línea de tiempo.")
         st.markdown(
             "- Weather: 1 SM visibility, 300' overcast; zero moonlight."
         )
@@ -629,7 +669,7 @@ with col_right:
 if show_map:
     map_col, _ = st.columns([2.2, 1.3], gap="large")
     with map_col:
-        st.subheader("Flight path (KML)")
+        st.subheader("Flight path (KML) 🗺️")
         paths = parse_kml_line_strings(kml_file)
         if not paths:
             st.info("No LineString coordinates found in KML.")
@@ -676,8 +716,26 @@ if show_map:
 # Transcripts are now in the right panel above
 
 
+# Timeline (Spanish) at bottom
+st.markdown("---")
+show_timeline = st.checkbox("Mostrar línea de tiempo (español)", value=True)
+if show_timeline:
+    st.subheader("Línea de tiempo (eventos clave)")
+    events = load_timeline_md("Línea de tiempo.md")
+    if events:
+        st.markdown(
+            "<div style='max-height:320px; overflow:auto; padding-right:8px'>",
+            unsafe_allow_html=True,
+        )
+        for ev in events:
+            st.markdown(f"- {ev}")
+        st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.caption("No se encontró la línea de tiempo.")
+
 # Footer
 st.markdown("---")
 st.caption(
-    "Built with Streamlit, ECharts, and pydeck for briefing-quality visuals."
+    "Dashboard construido por Dr Diego Malpica MD. "
+    "Dirección de Medicina Aeroespacial - Fuerza Aeroespacial Colombiana."
 )
