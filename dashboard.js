@@ -3,142 +3,35 @@
 
 (function () {
   const host = document.getElementById('gauges');
-  // panel will create and set g3.activeController internally
+  // gauges are now provided by FlightIndicators
   const DEBUG = false;
 
   function createGauges() {
-    // Robust creation: prefer contrib "T" panel, fallback to basic gauges if contrib unavailable
-    const hasContrib = !!(g3 && g3.contrib && g3.contrib.nav && g3.contrib.nav.attitude && g3.contrib.nav.heading && g3.contrib.nav.VSI && g3.contrib.nav.altitude);
-    const panel = g3.panel().width(950).height(380).smooth(false).grid(false).interval(null);
+    // Build FlightIndicators instruments grid inside #gauges
+    try { host.innerHTML = ''; } catch {}
 
-    const rowTopY = 120, rowBottomY = 260;
-
-    // Shared torque gauges
-    const tqScale = d3.scaleLinear().domain([0, 50]).range([210, 510]);
-    const tq1 = g3.gauge()
-      .metric('tq1').unit('percent')
-      .measure(tqScale)
-      .append(
-        g3.gaugeFace(),
-        g3.axisTicks().step(2),
-        g3.axisTicks().step(10).size(15).style('stroke-width: 2'),
-        g3.axisLabels().step(10).inset(30),
-        g3.gaugeLabel('ENG 1 TQ').y(-33),
-        g3.indicatePointer().shape('rondel')
-      );
-    const tq2 = g3.gauge()
-      .metric('tq2').unit('percent')
-      .measure(tqScale)
-      .append(
-        g3.gaugeFace(),
-        g3.axisTicks().step(2),
-        g3.axisTicks().step(10).size(15).style('stroke-width: 2'),
-        g3.axisLabels().step(10).inset(30),
-        g3.gaugeLabel('ENG 2 TQ').y(-33),
-        g3.indicatePointer().shape('rondel')
-      );
-
-    let layout;
-    if (hasContrib) {
-      const gaugeAI = g3.contrib.nav.attitude.generic();
-      const gaugeALT = g3.contrib.nav.altitude.generic().metric('altitude');
-      const gaugeHDG = g3.contrib.nav.heading.generic();
-      const gaugeVSI = g3.contrib.nav.VSI.generic().metric('vs');
-      const gaugeASI = g3.gauge()
-        .metric('tas')
-        .unit('knot')
-        .measure(d3.scaleLinear().domain([0, 200]).range([30, 350]))
-        .append(
-          g3.gaugeFace(),
-          g3.axisTicks().step(10).size(12).style('stroke-width: 2'),
-          g3.axisLabels().step(20).inset(30),
-          g3.gaugeLabel('ASI (kt)').y(-33),
-          g3.put().y(10).append(g3.indicateText().format(v => Math.round(v)).size(20)),
-          g3.indicatePointer().shape('needle')
-        );
-      layout = g3.put().append(
-        g3.put().x(120).y(rowTopY).scale(0.65).append(gaugeASI),
-        g3.put().x(340).y(rowTopY).scale(0.65).append(gaugeAI),
-        g3.put().x(560).y(rowTopY).scale(0.6).append(gaugeALT),
-        g3.put().x(200).y(rowBottomY).scale(0.65).append(gaugeVSI),
-        g3.put().x(420).y(rowBottomY).scale(0.65).append(gaugeHDG),
-        g3.put().x(620).y(rowBottomY).scale(0.5).append(tq1),
-        g3.put().x(750).y(rowBottomY).scale(0.5).append(tq2)
-      );
-    } else {
-      // Fallback: TAS, ALT, VSI + torques (no AI/HDG), to avoid blocking the rest of the dashboard
-      const gaugeTAS = g3.gauge()
-        .metric('tas').unit('knot')
-        .measure(d3.scaleLinear().domain([0, 200]).range([30, 350]))
-        .append(
-          g3.gaugeFace(),
-          g3.axisTicks().step(10).size(12).style('stroke-width: 2'),
-          g3.axisLabels().step(20).inset(30),
-          g3.gaugeLabel('TAS (kt)').y(-33),
-          g3.put().y(10).append(g3.indicateText().format(v => Math.round(v)).size(20)),
-          g3.indicatePointer().shape('needle')
-        );
-      const gaugeALTbasic = g3.gauge()
-        .metric('altitude').unit('ft')
-        .measure(d3.scaleLinear().domain([0, 1500]).range([0, 360]))
-        .append(
-          g3.gaugeFace(),
-          g3.axisTicks().step(50),
-          g3.axisTicks().step(250).size(15).style('stroke-width: 2'),
-          g3.axisLabels().step(250).format(v => Math.round(v/100)).size(18),
-          g3.gaugeLabel('ALT (ft)').y(-33),
-          g3.put().y(10).append(g3.indicateText().format(v => Math.round(v)).size(20)),
-          g3.indicatePointer().shape('needle')
-        );
-      const gaugeVSIbasic = g3.gauge()
-        .metric('vs').unit('ft/min')
-        .measure(d3.scaleLinear().domain([-2000, 2000]).range([90, 450]))
-        .append(
-          g3.gaugeFace(),
-          g3.axisTicks().step(200).size(6),
-          g3.axisTicks().step(1000).size(14).style('stroke-width: 2'),
-          g3.axisLabels().step(1000).format(v => Math.abs(v/100)).size(16),
-          g3.gaugeLabel('VSI').y(-25).size(12),
-          g3.put().y(8).append(g3.indicateText().format(v => Math.round(v)).size(18)),
-          g3.indicatePointer().shape('needle').clamp([-1950, 1950])
-        );
-      layout = g3.put().append(
-        g3.put().x(140).y(rowTopY).scale(0.7).append(gaugeTAS),
-        g3.put().x(480).y(rowTopY).scale(0.65).append(gaugeALTbasic),
-        g3.put().x(310).y(rowBottomY).scale(0.65).append(gaugeVSIbasic),
-        g3.put().x(620).y(rowBottomY).scale(0.5).append(tq1),
-        g3.put().x(750).y(rowBottomY).scale(0.5).append(tq2)
-      );
-      // Attempt upgrade when contrib becomes available
-      setTimeout(() => {
-        try {
-          if (g3 && g3.contrib && g3.contrib.nav) {
-            d3.select(host).selectAll('*').remove();
-            createGauges();
-          }
-        } catch {}
-      }, 500);
+    const cells = [];
+    for (let i = 0; i < 6; i++) {
+      const d = document.createElement('div');
+      d.setAttribute('class', 'fi-cell');
+      host.appendChild(d);
+      cells.push(d);
     }
 
-    d3.select(host).call(panel.append(layout));
-    
-    // Immediately set gauges to zero after creation
-    setTimeout(() => {
-      const zeroMetrics = {
-        latest: 0,
-        units: {
-          tas: 'knot', altitude: 'ft', vs: 'ft/min', tq1: 'percent', tq2: 'percent',
-          heading: 'deg', roll: 'deg', pitch: 'deg'
-        },
-        metrics: {
-          tas: 0, altitude: 0, vs: 0, tq1: 0, tq2: 0,
-          heading: 0, roll: 0, pitch: 0
-        }
+    // Instantiate instruments (top row: ASI, Attitude, Altimeter; bottom: VSI, Heading, Turn)
+    try {
+      const imgDir = 'js-module-flight-indicators/img';
+      fi = {
+        airspeed: new FlightIndicators(cells[0], FlightIndicators.TYPE_AIRSPEED, { size: 220, imagesDirectory: imgDir }),
+        attitude: new FlightIndicators(cells[1], FlightIndicators.TYPE_ATTITUDE, { size: 220, imagesDirectory: imgDir }),
+        altimeter: new FlightIndicators(cells[2], FlightIndicators.TYPE_ALTIMETER, { size: 220, pressure: 1000, imagesDirectory: imgDir }),
+        vertical: new FlightIndicators(cells[3], FlightIndicators.TYPE_VERTICAL_SPEED, { size: 220, imagesDirectory: imgDir }),
+        heading: new FlightIndicators(cells[4], FlightIndicators.TYPE_HEADING, { size: 220, imagesDirectory: imgDir }),
+        coordinator: new FlightIndicators(cells[5], FlightIndicators.TYPE_TURN_COORDINATOR, { size: 220, imagesDirectory: imgDir })
       };
-      if (g3.activeController) {
-        g3.activeController(zeroMetrics, sel => sel);
-      }
-    }, 50);
+    } catch (e) {
+      console.error('Failed to create FlightIndicators:', e);
+    }
   }
 
   // Controls/dom
@@ -167,6 +60,9 @@
     tq1: document.getElementById('stat-tq1'),
     tq2: document.getElementById('stat-tq2')
   };
+
+  // FlightIndicators instances container
+  var fi = null;
 
   // Data holders
   let records = [];
@@ -390,32 +286,32 @@
 
   function sendMetrics(row) {
     if (!row) return;
-    const metrics = {
-      latest: row._t,
-      units: {
-        tas: 'knot', altitude: 'ft', vs: 'ft/min', tq1: 'percent', tq2: 'percent', heading: 'deg', roll: 'deg', pitch: 'deg'
-      },
-      metrics: {
-        tas: finiteOrZero(+row.TAS),
-        altitude: finiteOrZero(computeAltitude(row)),
-        vs: finiteOrZero(+row['Vertical Speed']),
-        tq1: finiteOrZero(+row['Eng 1 Torque']),
-        tq2: finiteOrZero(+row['Eng 2 Torque']),
-        heading: finiteOrZero(headingAtTime(row._t || 0)),
-        roll: 0,
-        pitch: 0
-      }
-    };
-    if (g3.activeController) g3.activeController(metrics, sel => sel);
+    try {
+      const tas = finiteOrZero(+row.TAS);
+      const alt = finiteOrZero(computeAltitude(row));
+      const vs = finiteOrZero(+row['Vertical Speed']) / 1000; // FlightIndicators expects ~[-2,2]
+      const hdg = finiteOrZero(headingAtTime(row._t || 0));
+      const roll = 0;
+      const pitch = 0;
+
+      if (fi && fi.airspeed) fi.airspeed.updateAirSpeed(tas);
+      if (fi && fi.altimeter) { fi.altimeter.updateAltitude(alt); fi.altimeter.updatePressure(29.92); }
+      if (fi && fi.vertical) fi.vertical.updateVerticalSpeed(vs);
+      if (fi && fi.heading) fi.heading.updateHeading(hdg);
+      if (fi && fi.attitude) { fi.attitude.updateRoll(roll); fi.attitude.updatePitch(pitch); }
+      if (fi && fi.coordinator) fi.coordinator.updateCoordinator(0);
+    } catch (e) { if (DEBUG) console.error('sendMetrics failed', e); }
   }
 
   function resetGauges() {
-    const resetPayload = {
-      latest: 0,
-      units: { tas: 'knot', altitude: 'ft', vs: 'ft/min', tq1: 'percent', tq2: 'percent', heading: 'deg', roll: 'deg', pitch: 'deg' },
-      metrics: { tas: 0, altitude: 0, vs: 0, tq1: 0, tq2: 0, heading: 0, roll: 0, pitch: 0 }
-    };
-    if (g3.activeController) g3.activeController(resetPayload, sel => sel);
+    try {
+      if (fi && fi.airspeed) fi.airspeed.updateAirSpeed(0);
+      if (fi && fi.altimeter) { fi.altimeter.updateAltitude(0); fi.altimeter.updatePressure(29.92); }
+      if (fi && fi.vertical) fi.vertical.updateVerticalSpeed(0);
+      if (fi && fi.heading) fi.heading.updateHeading(0);
+      if (fi && fi.attitude) { fi.attitude.updateRoll(0); fi.attitude.updatePitch(0); }
+      if (fi && fi.coordinator) fi.coordinator.updateCoordinator(0);
+    } catch {}
   }
 
   function computeAltitude(row) {
@@ -681,7 +577,7 @@
 
   // Wait for libraries and DOM, then bring up gauges and the rest of UI
   function libsReady() { 
-    return !!(window.d3 && window.g3 && document.getElementById('gauges') && document.getElementById('time')); 
+    return !!(window.d3 && window.FlightIndicators && document.getElementById('gauges') && document.getElementById('time')); 
   }
   
   function initializeAll() {
