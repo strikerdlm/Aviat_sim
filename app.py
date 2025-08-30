@@ -670,23 +670,7 @@ if show_map:
             )
 
 
-# Third row: 3D model
-st.subheader("UH‑60 3D model")
-if stl_file and os.path.exists(stl_file):
-    try:
-        from streamlit_stl import stl_from_file
-        stl_from_file(
-            file_path=stl_file,
-            color="#9aa6b2",
-            auto_rotate=True,
-            height=420,
-        )
-    except Exception as e:
-        msg = f"STL viewer unavailable: {e}"
-        st.warning(msg)
-        st.caption("Install/update 'streamlit-stl' if needed.")
-else:
-    st.info("Provide STL file path in the sidebar to preview the airframe.")
+# 3D model now lives only in the sidebar preview (removed from main page)
 
 
 # Transcripts are now in the right panel above
