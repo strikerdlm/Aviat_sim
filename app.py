@@ -158,6 +158,18 @@ st.markdown(
     "</h2>",
     unsafe_allow_html=True,
 )
+st.markdown(
+    "<div style='color:#FF4B4B;font-weight:600'>"
+    "Dr Diego Malpica MD - Medicina Aeroespacial"
+    "</div>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    "<div style='color:#FF4B4B'>"
+    "Dirección de Medicina Aeroespacial"
+    "</div>",
+    unsafe_allow_html=True,
+)
 
 # Default data sources (hidden from sidebar)
 data_csv = "Data.csv"
@@ -257,7 +269,6 @@ with st.sidebar:
 col_left, col_right = st.columns([2.2, 1.3], gap="large")
 
 with col_left:
-    st.subheader("Flight metrics ✈️")
     lo, hi = sel
     dff = df[(df['t_seconds'] >= lo) & (df['t_seconds'] <= hi)].copy()
     if smooth:
@@ -482,7 +493,6 @@ with col_left:
 
     # Flight path map directly under charts in the left column
     if show_map:
-        st.subheader("Flight path (KML) 🗺️")
         paths = parse_kml_line_strings(kml_file)
         if not paths:
             st.info("No LineString coordinates found in KML.")
