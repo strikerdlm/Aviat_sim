@@ -23,29 +23,8 @@
 
   <main class="layout">
     <section class="gauges">
-      <div id="gauges" aria-label="Flight Instruments"></div>
+      <div id="gauges" role="group" aria-label="Flight Instruments"></div>
       <div id="comms-bubble" class="comms-bubble" aria-live="polite" aria-atomic="true"></div>
-      <!-- Inline timeline stuck to the instrument panel -->
-      <div class="inline-timeline">
-        <div class="controls">
-          <button id="btn-play" title="Play/Pause" aria-label="Play/Pause">▶</button>
-          <label class="time-label"><span id="clock">--:--:--</span></label>
-          <div class="spacer"></div>
-          <label>Speed
-            <select id="speed">
-              <option value="0.5">0.5×</option>
-              <option value="1" selected>1×</option>
-              <option value="2">2×</option>
-              <option value="4">4×</option>
-            </select>
-          </label>
-        </div>
-        <div class="slider-wrap">
-          <label for="time" class="visually-hidden">Time</label>
-          <input type="range" id="time" min="0" max="0" step="1" value="0" aria-label="Time" />
-          <div id="markers" class="markers" aria-hidden="true"></div>
-        </div>
-      </div>
     </section>
     <aside class="context" aria-label="Context">
       <div class="card">
@@ -56,15 +35,34 @@
           <li>Spatial disorientation after crossing shoreline</li>
         </ul>
       </div>
+      <div class="card timeline-card" aria-label="Timeline Controls">
+        <div class="inline-timeline">
+          <div class="controls">
+            <button id="btn-play" type="button" title="Play/Pause" aria-label="Play/Pause">▶</button>
+            <button id="btn-stop" type="button" title="Stop" aria-label="Stop">■</button>
+            <label class="time-label"><span id="clock">--:--:--</span></label>
+            <div class="spacer"></div>
+            <label>Speed
+              <select id="speed">
+                <option value="0.5">0.5×</option>
+                <option value="1" selected>1×</option>
+                <option value="2">2×</option>
+                <option value="4">4×</option>
+              </select>
+            </label>
+          </div>
+          <div class="slider-wrap">
+            <label for="time" class="visually-hidden">Time</label>
+            <input type="range" id="time" min="0" max="0" step="1" value="0" aria-label="Time" />
+            <div id="markers" class="markers" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
       <div class="card transcripts-card">
         <div class="transcript-header">
           <h3>Cockpit Transcript</h3>
         </div>
         <div id="transcript-list" class="transcript-list"></div>
-      </div>
-      <div class="card" id="event-now">
-        <h3>Timeline Event</h3>
-        <div class="event-body" id="event-body">—</div>
       </div>
       <div class="card" id="live-stats">
         <h3>Now</h3>
@@ -78,10 +76,6 @@
           <div class="kv"><div class="k">ENG2 TQ %</div><div class="v" id="stat-tq2">—</div></div>
         </div>
         <div id="risk-badges" class="risk-badges"></div>
-      </div>
-      <div class="card" id="highlights">
-        <h3>Highlights</h3>
-        <div id="highlight-list" class="highlight-list"></div>
       </div>
     </aside>
 
@@ -122,7 +116,7 @@
     </section>
 
     <section class="map" aria-label="Flight Path Map">
-      <div id="map" role="img" aria-label="Georeferenced flight path"></div>
+      <div id="map" aria-label="Georeferenced flight path"></div>
     </section>
 
 

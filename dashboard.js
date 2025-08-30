@@ -4,11 +4,12 @@
 (function () {
   const host = document.getElementById('gauges');
   // panel will create and set g3.activeController internally
+  const DEBUG = false;
 
   function createGauges() {
     // Robust creation: prefer contrib "T" panel, fallback to basic gauges if contrib unavailable
     const hasContrib = !!(g3 && g3.contrib && g3.contrib.nav && g3.contrib.nav.attitude && g3.contrib.nav.heading && g3.contrib.nav.VSI && g3.contrib.nav.altitude);
-    const panel = g3.panel().width(950).height(380).smooth(false).grid(false).interval(0);
+    const panel = g3.panel().width(950).height(380).smooth(false).grid(false).interval(null);
 
     const rowTopY = 120, rowBottomY = 260;
 
@@ -120,10 +121,29 @@
     }
 
     d3.select(host).call(panel.append(layout));
+    
+    // Immediately set gauges to zero after creation
+    setTimeout(() => {
+      const zeroMetrics = {
+        latest: 0,
+        units: {
+          tas: 'knot', altitude: 'ft', vs: 'ft/min', tq1: 'percent', tq2: 'percent',
+          heading: 'deg', roll: 'deg', pitch: 'deg'
+        },
+        metrics: {
+          tas: 0, altitude: 0, vs: 0, tq1: 0, tq2: 0,
+          heading: 0, roll: 0, pitch: 0
+        }
+      };
+      if (g3.activeController) {
+        g3.activeController(zeroMetrics, sel => sel);
+      }
+    }, 50);
   }
 
   // Controls/dom
   const playBtn = document.getElementById('btn-play');
+  const stopBtn = document.getElementById('btn-stop');
   const speedSel = document.getElementById('speed');
   const slider = document.getElementById('time');
   const markers = document.getElementById('markers');
@@ -154,8 +174,10 @@
   let highlights = [];
   let tMin = 0, tMax = 0;
   let playing = false;
+  let hasStarted = false;
   let rafId = null;
   let lastTs = 0;
+  let lastSliderSecProcessed = NaN;
 
   // d3 is provided via script tag
 
@@ -351,11 +373,14 @@
   }
 
   function updateEvent(nowSec) {
-    if (!timeline.length) { eventBody.textContent = '—'; return; }
+    if (!timeline.length) {
+      if (eventBody) eventBody.textContent = '—';
+      return;
+    }
     // find latest event <= now
     let best = null;
     for (const ev of timeline) if (ev.t <= nowSec) best = ev; else break;
-    eventBody.textContent = best ? best.text : '—';
+    if (eventBody) eventBody.textContent = best ? best.text : '—';
     // also pulse comms bubble subtly when new event
     if (best && commsBubble) {
       commsBubble.classList.remove('show');
@@ -364,23 +389,33 @@
   }
 
   function sendMetrics(row) {
+    if (!row) return;
     const metrics = {
       latest: row._t,
       units: {
         tas: 'knot', altitude: 'ft', vs: 'ft/min', tq1: 'percent', tq2: 'percent', heading: 'deg', roll: 'deg', pitch: 'deg'
       },
       metrics: {
-        tas: +row.TAS || 0,
-        altitude: computeAltitude(row),
-        vs: +row['Vertical Speed'] || 0,
-        tq1: +row['Eng 1 Torque'] || 0,
-        tq2: +row['Eng 2 Torque'] || 0,
-        heading: headingAtTime(row._t || 0),
+        tas: finiteOrZero(+row.TAS),
+        altitude: finiteOrZero(computeAltitude(row)),
+        vs: finiteOrZero(+row['Vertical Speed']),
+        tq1: finiteOrZero(+row['Eng 1 Torque']),
+        tq2: finiteOrZero(+row['Eng 2 Torque']),
+        heading: finiteOrZero(headingAtTime(row._t || 0)),
         roll: 0,
         pitch: 0
       }
     };
-    if (g3.activeController) g3.activeController(metrics, sel => sel.transition().duration(180));
+    if (g3.activeController) g3.activeController(metrics, sel => sel);
+  }
+
+  function resetGauges() {
+    const resetPayload = {
+      latest: 0,
+      units: { tas: 'knot', altitude: 'ft', vs: 'ft/min', tq1: 'percent', tq2: 'percent', heading: 'deg', roll: 'deg', pitch: 'deg' },
+      metrics: { tas: 0, altitude: 0, vs: 0, tq1: 0, tq2: 0, heading: 0, roll: 0, pitch: 0 }
+    };
+    if (g3.activeController) g3.activeController(resetPayload, sel => sel);
   }
 
   function computeAltitude(row) {
@@ -397,7 +432,17 @@
   }
 
   function updateStats(row, sec) {
-    if (!row) return;
+    if (!row) {
+      stat.time.textContent = timeToLabel(sec ?? tMin);
+      stat.tas.textContent = '—';
+      stat.alt.textContent = '—';
+      stat.vs.textContent = '—';
+      stat.gs.textContent = '—';
+      stat.tq1.textContent = '—';
+      stat.tq2.textContent = '—';
+      renderRiskBadges({});
+      return;
+    }
     stat.time.textContent = timeToLabel(sec ?? row._t ?? 0);
     stat.tas.textContent = fmt(+row.TAS || 0, 1);
     stat.alt.textContent = fmt(computeAltitude(row), 0);
@@ -434,9 +479,11 @@
   function tickPlay() {
     if (!playing) return;
     const now = performance.now();
-    const dt = (now - lastTs)/1000 * parseFloat(speedSel.value);
+    let dt = (now - lastTs)/1000 * parseFloat(speedSel.value);
+    if (!Number.isFinite(dt) || dt <= 0) dt = 0.016; // guarantee progress ~60fps
     lastTs = now;
-    let t = +slider.value + dt;
+    const current = clamp((+slider.value || tMin), tMin, tMax);
+    let t = current + dt;
     if (t >= tMax) { t = tMax; playing = false; playBtn.textContent = '▶'; }
     slider.value = Math.round(t);
     slider.dispatchEvent(new Event('input', { bubbles: true }));
@@ -445,15 +492,28 @@
 
   function onSlider() {
     const sec = +slider.value;
-    console.log(`Slider moved to: ${sec} (${timeToLabel(sec)})`);
+    
+    // Always update non-gauge UI elements
     setClock(sec);
-    const row = recordsBySecond.get(sec) || nearestRow(sec);
-    console.log('Found row:', row ? `${row.TAS || 0} kt, ${row['Altitude Radar'] || 0} ft` : 'none');
-    if (row) sendMetrics(row);
     renderTranscript(sec);
     updateEvent(sec);
-    updateStats(row, sec);
     updateCursor(sec);
+    
+    // Only update gauges if playback has started
+    if (!hasStarted) {
+      updateStats(null, sec);
+      return;
+    }
+    if (sec === lastSliderSecProcessed) return; // debounce identical events
+    lastSliderSecProcessed = sec;
+    if (DEBUG) console.log(`Slider moved to: ${sec} (${timeToLabel(sec)})`);
+    
+    const row = recordsBySecond.get(sec) || nearestRow(sec);
+    if (DEBUG) console.log('Found row:', row ? `${row.TAS || 0} kt, ${row['Altitude Radar'] || 0} ft` : 'none');
+    
+    // Send metrics to gauges
+    if (row) sendMetrics(row);
+    updateStats(row, sec);
   }
 
   function nearestRow(sec) {
@@ -520,10 +580,8 @@
 
     // bind controls with multiple event types for browser compatibility
     if (slider) {
-      slider.addEventListener('input', onSlider);
-      slider.addEventListener('change', onSlider); // IE fallback
-      slider.addEventListener('mouseup', onSlider); // Mouse release
-      slider.addEventListener('touchend', onSlider); // Touch release
+      slider.oninput = onSlider;
+      slider.onchange = onSlider;
       console.log('Slider events bound, range:', slider.min, 'to', slider.max);
     } else {
       console.error('Slider element not found!');
@@ -531,11 +589,54 @@
     
     if (playBtn) {
       playBtn.addEventListener('click', () => {
+        // If this is the first time playing, activate gauges
+        if (!hasStarted) {
+          hasStarted = true;
+          // Force immediate gauge update with current position
+          const currentSec = +slider.value || tMin;
+          const currentRow = recordsBySecond.get(currentSec) || nearestRow(currentSec);
+          if (currentRow) {
+            sendMetrics(currentRow);
+            updateStats(currentRow, currentSec);
+          }
+        }
+        
+        let v = +slider.value;
+        if (!Number.isFinite(v) || v < tMin || v >= tMax) slider.value = Math.round(tMin);
+        onSlider();
         playing = !playing;
         playBtn.textContent = playing ? '❚❚' : '▶';
+        if (!playing) {
+          cancelAnimationFrame(rafId);
+          cancelGaugeTransitions();
+          setPausedCss(true);
+          lastTs = performance.now();
+          return;
+        }
+        setPausedCss(false);
         lastTs = performance.now();
-        if (playing) rafId = requestAnimationFrame(tickPlay); 
-        else cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(tickPlay);
+      });
+    }
+
+    if (stopBtn) {
+      stopBtn.addEventListener('click', () => {
+        playing = false;
+        hasStarted = false;
+        playBtn.textContent = '▶';
+        cancelAnimationFrame(rafId);
+        cancelGaugeTransitions();
+        setPausedCss(true);
+        slider.value = Math.round(tMin);
+        
+        // Manually reset UI to initial state
+        const initialTime = tMin || 0;
+        setClock(initialTime);
+        updateCursor(initialTime);
+        renderTranscript(initialTime);
+        updateEvent(initialTime);
+        updateStats(null, initialTime);
+        resetGauges();
       });
     }
 
@@ -567,9 +668,15 @@
       console.error('Chart initialization failed:', e);
     }
 
-    // initial draw with first record
-    if (records.length) sendMetrics(records[0]);
-    if (records.length) updateStats(records[0], tMin);
+    // Set initial slider position and update UI (but not gauges)
+    if (records.length) {
+      slider.value = Math.round(tMin);
+      setClock(tMin);
+      renderTranscript(tMin);
+      updateEvent(tMin);
+      updateStats(null, tMin);
+      updateCursor(tMin);
+    }
   }
 
   // Wait for libraries and DOM, then bring up gauges and the rest of UI
@@ -578,6 +685,8 @@
   }
   
   function initializeAll() {
+    if (window.__DASHBOARD_STARTED) { console.log('Dashboard already initialized'); return; }
+    window.__DASHBOARD_STARTED = true;
     console.log('Initializing dashboard...');
     try { 
       createGauges(); 
@@ -621,7 +730,7 @@
 // We append concrete implementations below using function declarations
 
 // Chart state
-let _chart = {
+var _chart = {
   gMain: null,
   gXAxis: null,
   gYLeft: null,
@@ -826,7 +935,7 @@ function updateCursor(sec) {
 function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
 
 // Map state and helpers
-let _map = { map: null, path: null, marker: null, coords: [] };
+var _map = { map: null, path: null, marker: null, coords: [] };
 
 function setupMap() {
   const el = document.getElementById('map');
@@ -902,7 +1011,7 @@ function updateMapPosition(sec) {
 }
 
 // Heading dictionary and calculation
-let headingLookup = new Map();
+var headingLookup = new Map();
 
 function buildHeadingLookup() {
   if (!_map.coords || _map.coords.length < 2) return;
@@ -1036,5 +1145,20 @@ function renderHighlights() {
     el.appendChild(d);
   }
 }
+
+function cancelGaugeTransitions() {
+  try {
+    // cancel transitions on all gauge elements
+    if (window.d3) {
+      d3.select('#gauges').selectAll('*').interrupt();
+    }
+  } catch {}
+}
+
+function setPausedCss(on) {
+  try { document.body.classList.toggle('paused-gauges', !!on); } catch {}
+}
+
+function finiteOrZero(v) { return Number.isFinite(v) ? v : 0; }
 
 
