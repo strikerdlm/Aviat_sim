@@ -261,7 +261,7 @@ with st.sidebar:
         index=0,
     )
     show_timeline_panel = st.checkbox(
-        "Mostrar línea de tiempo (español)", value=False
+        "Mostrar línea de tiempo (español)", value=True
     )
 
 
