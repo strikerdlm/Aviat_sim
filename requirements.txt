@@ -6,3 +6,9 @@ vtk>=9.2
 imageio>=2.33
 imageio-ffmpeg>=0.4
 
+# Streamlit app dependencies
+streamlit>=1.31
+pydeck>=0.8.0
+streamlit-echarts5>=0.8.2
+streamlit-stl>=0.0.3
+

@@ -1,0 +1,699 @@
+import os
+from typing import List, Tuple
+
+import numpy as np
+import pandas as pd
+import pydeck as pdk
+import streamlit as st
+from streamlit_echarts5 import st_echarts
+from pathlib import Path  # noqa: F401 (placeholder for future static paths)
+
+
+# --------------
+# Helpers & data
+# --------------
+
+@st.cache_data(show_spinner=False)
+def load_csv(csv_path: str) -> pd.DataFrame:
+    df = pd.read_csv(csv_path)
+    # Normalize expected columns with robust fallbacks
+    # Column names in Data.csv: Ground Speed, Altitude Radar,
+    # Local Hour, Local Minute, Local Second
+    rename_map = {
+        'Ground Speed': 'ground_speed',
+        'Altitude Radar': 'altitude_radar',
+        'Vertical Speed': 'vertical_speed',
+        'Eng 1 Torque': 'eng1_torque',
+        'Eng 2 Torque': 'eng2_torque',
+        'Local Hour': 'h',
+        'Local Minute': 'm',
+        'Local Second': 's',
+        'Transcripts': 'transcript',
+        'Crew': 'crew'
+    }
+    for k, v in rename_map.items():
+        if k in df.columns:
+            df.rename(columns={k: v}, inplace=True)
+    # Construct time string HH:MM:SS and seconds-from-start for sorting
+    # and filtering
+
+    def mk_ts(row):
+        hh = int(row.get('h', 0)) if not pd.isna(row.get('h', np.nan)) else 0
+        mm = int(row.get('m', 0)) if not pd.isna(row.get('m', np.nan)) else 0
+        ss = int(row.get('s', 0)) if not pd.isna(row.get('s', np.nan)) else 0
+        return f"{hh:02d}:{mm:02d}:{ss:02d}"
+
+    df['time_str'] = df.apply(mk_ts, axis=1)
+    df['t_seconds'] = (
+        df.get('h', 0).fillna(0).astype(int) * 3600
+        + df.get('m', 0).fillna(0).astype(int) * 60
+        + df.get('s', 0).fillna(0).astype(int)
+    )
+    # Clamp negative radar altitude to 0 for realism per README
+    if 'altitude_radar' in df.columns:
+        df['altitude_radar'] = df['altitude_radar'].fillna(0)
+        df.loc[df['altitude_radar'] < 0, 'altitude_radar'] = 0
+    # Ensure numeric
+    for col in ['ground_speed', 'altitude_radar', 'vertical_speed']:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+    return df
+
+
+@st.cache_data(show_spinner=False)
+def parse_kml_line_strings(kml_path: str) -> List[List[Tuple[float, float]]]:
+    # Minimal KML parser for LineString coordinates
+    # We avoid heavy deps; this extracts sequences inside
+    # <LineString><coordinates>...</coordinates>
+    if not os.path.exists(kml_path):
+        return []
+    with open(kml_path, 'r', encoding='utf-8') as f:
+        text = f.read()
+    coords_blocks = []
+    start = 0
+    while True:
+        a = text.find('<coordinates>', start)
+        if a == -1:
+            break
+        b = text.find('</coordinates>', a)
+        if b == -1:
+            break
+        raw = text[a + len('<coordinates>'): b].strip()
+        coords = []
+        # Coordinates are like: lon,lat,alt lon,lat,alt ...
+        for token in raw.replace('\n', ' ').split():
+            parts = token.split(',')
+            if len(parts) >= 2:
+                try:
+                    lon = float(parts[0])
+                    lat = float(parts[1])
+                    coords.append((lon, lat))
+                except ValueError:
+                    pass
+        if coords:
+            coords_blocks.append(coords)
+        start = b + len('</coordinates>')
+    return coords_blocks
+
+
+def echarts_theme_dark() -> dict:
+    return {
+        "darkMode": True,
+        "color": ["#58a6ff", "#3fb950", "#ff6b6b", "#d2a8ff"],
+        "textStyle": {"fontFamily": "Inter, system-ui, Segoe UI, Roboto"},
+        "grid": {"left": 40, "right": 24, "top": 40, "bottom": 60},
+        "tooltip": {
+            "backgroundColor": "rgba(22,27,34,.95)",
+            "borderColor": "#30363d",
+        },
+        "legend": {"textStyle": {"color": "#c9d1d9"}},
+        "xAxis": {
+            "axisLine": {"lineStyle": {"color": "#2a3645"}},
+            "axisLabel": {"color": "#8b949e"},
+        },
+        "yAxis": {
+            "axisLine": {"lineStyle": {"color": "#2a3645"}},
+            "axisLabel": {"color": "#8b949e"},
+            "splitLine": {"lineStyle": {"color": "#2a3645"}},
+        },
+    }
+
+
+# -----------------
+# Layout & sections
+# -----------------
+
+st.set_page_config(
+    page_title="UH‑60M Flight Briefing",
+    page_icon="🚁",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+st.title("UH‑60M Flight Briefing: MOJO 69")
+st.caption("Interactive analysis: time series, map path, and 3D model")
+
+# Default data sources (hidden from sidebar)
+data_csv = "Data.csv"
+kml_file = "MOJO69 Flight Path.kml"
+stl_file = "UH-60_Blackhawk.stl"
+
+
+# Sidebar controls (no data source inputs)
+with st.sidebar:
+    st.markdown("### MOJO69")
+    try:
+        from streamlit_stl import stl_from_file
+        stl_from_file(
+            file_path=stl_file,
+            color="#9aa6b2",
+            auto_rotate=True,
+            height=220,
+        )
+    except Exception:
+        st.caption("UH‑60 STL preview unavailable.")
+    st.markdown("---")
+    st.header("Filters")
+    df = load_csv(data_csv)
+    t_min = int(df['t_seconds'].min())
+    t_max = int(df['t_seconds'].max())
+    sel = st.slider(
+        "Time window (s)",
+        min_value=t_min,
+        max_value=t_max,
+        value=(t_min, min(t_min + 300, t_max)),
+        step=1,
+    )
+    smooth = st.checkbox("Smooth series (moving avg)", value=True)
+    window = st.slider("Smoothing window", 1, 21, 5, step=2)
+    st.markdown("---")
+    st.header("Chart style")
+    chart_style = st.selectbox(
+        "Style",
+        [
+            "Smooth area",
+            "Line",
+            "Scatter",
+            "Sparkline",
+        ],
+        index=0,
+    )
+    enable_gradient = st.checkbox("Gradient fill", value=True)
+    enable_crosshair = st.checkbox("Axis crosshair", value=True)
+    enable_toolbox = st.checkbox("Toolbox (zoom/save/restore)", value=True)
+    show_markers = st.checkbox("Show markers (min/max)", value=False)
+    declutter = st.checkbox(
+        "Declutter (lighter grid, fewer labels)", value=True
+    )
+    display_mode = st.radio(
+        "Display mode",
+        ["Combined", "Small multiples"],
+        index=1,
+        horizontal=True,
+    )
+    st.markdown("---")
+    st.header("Visibility")
+    show_map = st.checkbox("Show flight path map", value=True)
+    show_gauges = st.checkbox("Show summary gauges (simple)", value=False)
+    show_extra = st.checkbox("Show extra plots", value=False)
+    if show_extra:
+        show_vsi = st.checkbox("Vertical Speed plot", value=True)
+        show_torques = st.checkbox("Engine Torques plots", value=True)
+    else:
+        show_vsi = False
+        show_torques = False
+    st.markdown("---")
+    st.header("Panels")
+    show_transcripts = st.checkbox("Transcripts", value=True)
+    pos_transcripts = st.selectbox(
+        "Transcripts position",
+        ["Right column", "Below charts"],
+        index=0,
+    )
+    show_context = st.checkbox("Accident context", value=True)
+    pos_context = st.selectbox(
+        "Context position",
+        ["Right column", "Below charts"],
+        index=0,
+    )
+
+
+# Top row: two columns with charts/gauges and transcripts/context
+col_left, col_right = st.columns([2.2, 1.3], gap="large")
+
+with col_left:
+    st.subheader("Flight metrics")
+    lo, hi = sel
+    dff = df[(df['t_seconds'] >= lo) & (df['t_seconds'] <= hi)].copy()
+    if smooth:
+        for c in ['ground_speed', 'altitude_radar']:
+            if c in dff.columns:
+                dff[c] = (
+                    dff[c].rolling(window, min_periods=1, center=True).mean()
+                )
+
+    x = dff['time_str'].tolist()
+    gs = (
+        dff.get('ground_speed', pd.Series([np.nan] * len(dff)))
+        .fillna(np.nan)
+        .tolist()
+    )
+    alt = (
+        dff.get('altitude_radar', pd.Series([np.nan] * len(dff)))
+        .fillna(np.nan)
+        .tolist()
+    )
+
+    def compute_range(values, pad=0.1):
+        arr = [v for v in values if v is not None and not np.isnan(v)]
+        if not arr:
+            return [0, 1]
+        vmin, vmax = float(min(arr)), float(max(arr))
+        if vmin == vmax:
+            return [vmin - 1, vmax + 1]
+        span = vmax - vmin
+        return [vmin - span * pad, vmax + span * pad]
+
+    if display_mode == "Combined":
+        # Modern combined chart with dual axes
+        y1_min, y1_max = compute_range(gs)
+        y2_min, y2_max = compute_range(alt)
+        options = {
+            "backgroundColor": "transparent",
+            "aria": {"enabled": True},
+            "legend": {"top": 4},
+            "tooltip": {
+                "trigger": "axis",
+                "valueFormatter": (
+                    "function (v) { return v == null ? '-' : v.toFixed(2); }"
+                ),
+            },
+            "axisPointer": (
+                {"type": "cross"} if enable_crosshair else {"type": "line"}
+            ),
+            "toolbox": (
+                {
+                    "feature": {
+                        "saveAsImage": {},
+                        "dataZoom": {"yAxisIndex": "none"},
+                        "restore": {},
+                    }
+                }
+                if enable_toolbox
+                else {}
+            ),
+            "dataZoom": [
+                {"type": "inside", "throttle": 50},
+                {"type": "slider", "bottom": 8, "height": 14},
+            ],
+            "xAxis": {
+                "type": "category",
+                "data": x,
+                "boundaryGap": False,
+                "axisLabel": {"interval": "auto" if not declutter else 5},
+            },
+            "yAxis": [
+                {
+                    "type": "value",
+                    "name": "Ground Speed (kt)",
+                    "min": y1_min,
+                    "max": y1_max,
+                    "splitLine": {"show": not declutter},
+                },
+                {
+                    "type": "value",
+                    "name": "Radar Altitude (ft)",
+                    "min": y2_min,
+                    "max": y2_max,
+                    "splitLine": {"show": False},
+                },
+            ],
+            "series": [
+                {
+                    "name": "Ground Speed",
+                    "type": "scatter" if chart_style == "Scatter" else "line",
+                    "yAxisIndex": 0,
+                    "showSymbol": chart_style in ["Scatter", "Sparkline"],
+                    "symbolSize": 6 if chart_style == "Scatter" else 2,
+                    "smooth": chart_style in ["Smooth area", "Line"],
+                    "sampling": "lttb",
+                    "lineStyle": {"width": 2},
+                    "areaStyle": (
+                        {
+                            "color": {
+                                "type": "linear",
+                                "x": 0,
+                                "y": 0,
+                                "x2": 0,
+                                "y2": 1,
+                                "colorStops": [
+                                    {
+                                        "offset": 0,
+                                        "color": "rgba(88,166,255,.35)",
+                                    },
+                                    {
+                                        "offset": 1,
+                                        "color": "rgba(88,166,255,.05)",
+                                    },
+                                ],
+                            }
+                        }
+                        if enable_gradient and chart_style == "Smooth area"
+                        else {"opacity": 0}
+                    ),
+                    "markLine": (
+                        {"data": [{"type": "max"}, {"type": "min"}]}
+                        if show_markers
+                        else None
+                    ),
+                    "data": gs,
+                },
+                {
+                    "name": "Radar Altitude",
+                    "type": "line",
+                    "yAxisIndex": 1,
+                    "showSymbol": chart_style == "Sparkline",
+                    "smooth": chart_style in ["Smooth area", "Line"],
+                    "sampling": "lttb",
+                    "lineStyle": {"width": 2},
+                    "markLine": (
+                        {"data": [{"type": "max"}, {"type": "min"}]}
+                        if show_markers
+                        else None
+                    ),
+                    "data": alt,
+                },
+            ],
+        }
+        st_echarts(
+            options=options,
+            height="420px",
+            theme=echarts_theme_dark(),
+        )
+    else:
+        # Small multiples: two decluttered charts stacked
+        y1_min, y1_max = compute_range(gs)
+        y2_min, y2_max = compute_range(alt)
+        opt_gs = {
+            "backgroundColor": "transparent",
+            "legend": {"show": False},
+            "tooltip": {"trigger": "axis"},
+            "xAxis": {
+                "type": "category",
+                "data": x,
+                "boundaryGap": False,
+                "axisLabel": {"interval": 8},
+            },
+            "yAxis": {
+                "type": "value",
+                "name": "Ground Speed (kt)",
+                "min": y1_min,
+                "max": y1_max,
+                "splitLine": {"show": not declutter},
+            },
+            "dataZoom": [
+                {"type": "inside"},
+                {"type": "slider", "bottom": 6, "height": 12},
+            ],
+            "series": [
+                {
+                    "type": "line",
+                    "showSymbol": False,
+                    "smooth": True,
+                    "sampling": "lttb",
+                    "areaStyle": (
+                        {"opacity": .2} if enable_gradient else {"opacity": 0}
+                    ),
+                    "data": gs,
+                }
+            ],
+        }
+        opt_ra = {
+            "backgroundColor": "transparent",
+            "legend": {"show": False},
+            "tooltip": {"trigger": "axis"},
+            "xAxis": {
+                "type": "category",
+                "data": x,
+                "boundaryGap": False,
+                "axisLabel": {"interval": 8},
+            },
+            "yAxis": {
+                "type": "value",
+                "name": "Radar Altitude (ft)",
+                "min": y2_min,
+                "max": y2_max,
+                "splitLine": {"show": not declutter},
+            },
+            "dataZoom": [
+                {"type": "inside"},
+                {"type": "slider", "bottom": 6, "height": 12},
+            ],
+            "series": [
+                {
+                    "type": "line",
+                    "showSymbol": False,
+                    "smooth": True,
+                    "sampling": "lttb",
+                    "areaStyle": (
+                        {"opacity": .2} if enable_gradient else {"opacity": 0}
+                    ),
+                    "data": alt,
+                }
+            ],
+        }
+        st_echarts(opt_gs, height="260px", theme=echarts_theme_dark())
+        st_echarts(opt_ra, height="260px", theme=echarts_theme_dark())
+
+    # Optional simple summary gauges (ECharts minimal rings)
+    if show_gauges:
+        st.markdown("\n")
+        g1, g2, g3 = st.columns(3)
+        latest = dff.tail(1)
+        latest_gs = float(
+            latest.get('ground_speed', pd.Series([np.nan])).iloc[0]
+        )
+        latest_ra = float(
+            latest.get('altitude_radar', pd.Series([np.nan])).iloc[0]
+        )
+        latest_vsi = float(
+            latest.get('vertical_speed', pd.Series([np.nan])).iloc[0]
+        )
+
+        def ring(name, value, unit):
+            return {
+                "series": [
+                    {
+                        "type": "gauge",
+                        "startAngle": 210,
+                        "endAngle": -30,
+                        "min": 0,
+                        "max": 1,
+                        "axisLine": {"lineStyle": {"width": 8}},
+                        "progress": {"show": True, "width": 8},
+                        "pointer": {"show": False},
+                        "splitLine": {"show": False},
+                        "axisTick": {"show": False},
+                        "axisLabel": {"show": False},
+                        "title": {"show": True, "offsetCenter": [0, "65%"]},
+                        "detail": {
+                            "valueAnimation": True,
+                            "fontSize": 18,
+                            "formatter": f"{value:.0f} {unit}",
+                        },
+                        "data": [{"value": 0.0, "name": name}],
+                    }
+                ]
+            }
+
+        with g1:
+            st_echarts(ring("Radar Alt", latest_ra, "ft"), height="150px",
+                       theme=echarts_theme_dark())
+        with g2:
+            st_echarts(ring("VSI", latest_vsi, "fpm"), height="150px",
+                       theme=echarts_theme_dark())
+        with g3:
+            st_echarts(ring("Ground Spd", latest_gs, "kt"), height="150px",
+                       theme=echarts_theme_dark())
+
+    # Quick stats
+    c1, c2, c3, c4 = st.columns(4)
+    gs_series = dff.get('ground_speed', pd.Series([np.nan]))
+    alt_series = dff.get('altitude_radar', pd.Series([np.nan]))
+    with c1:
+        st.metric(
+            "Max GS (kt)",
+            f"{np.nanmax(pd.to_numeric(gs_series, errors='coerce')):.1f}",
+        )
+    with c2:
+        st.metric(
+            "Avg GS (kt)",
+            f"{np.nanmean(pd.to_numeric(gs_series, errors='coerce')):.1f}",
+        )
+    with c3:
+        st.metric(
+            "Max RA (ft)",
+            f"{np.nanmax(pd.to_numeric(alt_series, errors='coerce')):.1f}",
+        )
+    with c4:
+        st.metric(
+            "Min RA (ft)",
+            f"{np.nanmin(pd.to_numeric(alt_series, errors='coerce')):.1f}",
+        )
+
+    # Extra plots (optional)
+    if show_vsi:
+        vsi_vals = (
+            dff.get('vertical_speed', pd.Series([np.nan] * len(dff)))
+            .fillna(np.nan)
+            .tolist()
+        )
+        vmin, vmax = compute_range(vsi_vals)
+        opt_vsi = {
+            "backgroundColor": "transparent",
+            "legend": {"show": False},
+            "tooltip": {"trigger": "axis"},
+            "xAxis": {
+                "type": "category",
+                "data": x,
+                "boundaryGap": False,
+                "axisLabel": {"interval": 8},
+            },
+            "yAxis": {
+                "type": "value",
+                "name": "VSI (fpm)",
+                "min": vmin,
+                "max": vmax,
+                "splitLine": {"show": not declutter},
+            },
+            "series": [
+                {"type": "line", "showSymbol": False, "smooth": True,
+                 "data": vsi_vals}
+            ],
+        }
+        st_echarts(opt_vsi, height="220px", theme=echarts_theme_dark())
+
+    if show_torques:
+        t1 = (
+            dff.get('eng1_torque', pd.Series([np.nan] * len(dff)))
+            .fillna(np.nan)
+            .tolist()
+        )
+        t2 = (
+            dff.get('eng2_torque', pd.Series([np.nan] * len(dff)))
+            .fillna(np.nan)
+            .tolist()
+        )
+        tmin, tmax = compute_range(t1 + t2)
+        opt_tq = {
+            "backgroundColor": "transparent",
+            "tooltip": {"trigger": "axis"},
+            "legend": {"top": 0},
+            "xAxis": {"type": "category", "data": x, "boundaryGap": False},
+            "yAxis": {"type": "value", "min": tmin, "max": tmax},
+            "series": [
+                {"name": "Eng 1", "type": "line", "showSymbol": False,
+                 "smooth": True, "data": t1},
+                {"name": "Eng 2", "type": "line", "showSymbol": False,
+                 "smooth": True, "data": t2},
+            ],
+        }
+        st_echarts(opt_tq, height="240px", theme=echarts_theme_dark())
+
+
+with col_right:
+    if show_transcripts and pos_transcripts == "Right column":
+        st.subheader("Transcripts")
+        transcripts_box = st.container(border=True)
+        with transcripts_box:
+            if 'transcript' in df.columns:
+                sample = (
+                    df[['time_str', 'crew', 'transcript']]
+                    .dropna(subset=['transcript'])
+                    .head(50)
+                    .reset_index(drop=True)
+                )
+                st.markdown(
+                    "<div style='max-height:420px; overflow:auto;"
+                    " padding-right:8px'>",
+                    unsafe_allow_html=True,
+                )
+                for _, row in sample.iterrows():
+                    crew = str(row.get('crew', '') or '').strip() or "Crew"
+                    text = (
+                        str(row.get('transcript', '') or '')
+                        .strip()
+                        .strip('"')
+                    )
+                    st.markdown(f"**[{row['time_str']}] {crew}**  ")
+                    st.markdown(f"{text}")
+                st.markdown("</div>", unsafe_allow_html=True)
+            else:
+                st.caption("No transcript column found in CSV.")
+        st.markdown("---")
+    if show_context and pos_context == "Right column":
+        st.subheader("Accident context")
+        st.markdown(
+            "- Weather: 1 SM visibility, 300' overcast; zero moonlight."
+        )
+        st.markdown(
+            "- Direct cause: spatial disorientation; loss of control."
+        )
+        st.markdown(
+            "- Contributing: below-minimum launch, coordination issues."
+        )
+        st.markdown("- Impact: water strike; non-survivable.")
+
+
+# Second row: Map (same width as plots)
+if show_map:
+    map_col, _ = st.columns([2.2, 1.3], gap="large")
+    with map_col:
+        st.subheader("Flight path (KML)")
+        paths = parse_kml_line_strings(kml_file)
+        if not paths:
+            st.info("No LineString coordinates found in KML.")
+        else:
+            # Build PathLayer polyline(s)
+            all_points = [
+                (lon, lat)
+                for path in paths
+                for (lon, lat) in path
+            ]
+            center_lat = np.mean([lat for _, lat in all_points])
+            center_lon = np.mean([lon for lon, _ in all_points])
+
+            data_rows = []
+            for path in paths:
+                data_rows.append(
+                    {"path": [[lon, lat] for (lon, lat) in path]}
+                )
+            path_df = pd.DataFrame(data_rows)
+
+            layer = pdk.Layer(
+                "PathLayer",
+                path_df,
+                get_path="path",
+                get_color=[88, 166, 255],
+                width_scale=2,
+                width_min_pixels=3,
+            )
+            view_state = pdk.ViewState(
+                latitude=center_lat,
+                longitude=center_lon,
+                zoom=11,
+                pitch=45,
+                bearing=0,
+            )
+            st.pydeck_chart(
+                pdk.Deck(layers=[layer], initial_view_state=view_state)
+            )
+
+
+# Third row: 3D model
+st.subheader("UH‑60 3D model")
+if stl_file and os.path.exists(stl_file):
+    try:
+        from streamlit_stl import stl_from_file
+        stl_from_file(
+            file_path=stl_file,
+            color="#9aa6b2",
+            auto_rotate=True,
+            height=420,
+        )
+    except Exception as e:
+        msg = f"STL viewer unavailable: {e}"
+        st.warning(msg)
+        st.caption("Install/update 'streamlit-stl' if needed.")
+else:
+    st.info("Provide STL file path in the sidebar to preview the airframe.")
+
+
+# Transcripts are now in the right panel above
+
+
+# Footer
+st.markdown("---")
+st.caption(
+    "Built with Streamlit, ECharts, and pydeck for briefing-quality visuals."
+)
