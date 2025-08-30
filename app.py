@@ -137,8 +137,6 @@ def echarts_theme_dark() -> dict:
 # -----------------
 # Layout & sections
 # -----------------
-
-icon_path = "icon/icon.png"
 st.set_page_config(
     page_title="UH‑60M Flight Briefing",
     page_icon=("icon.png" if os.path.exists("icon.png") else "🚁"),
@@ -146,11 +144,19 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.title(
-    "Análisis de caso: Rendimiento Humano con Dispositivos de Visión Nocturna"
+st.markdown(
+    "<h1 style='margin-bottom:6px'>"
+    "Congreso Internacional de Escuelas de Helicópteros de Latinoamérica "
+    "2025 🚁"
+    "</h1>",
+    unsafe_allow_html=True,
 )
-st.caption(
-    "Congreso Internacional de Escuelas de Helicópteros de Latinoamérica"
+st.markdown(
+    "<h2 style='color:#FF4B4B;margin-top:0'>"
+    "Análisis de caso: Rendimiento Humano con Dispositivos de Visión "
+    "Nocturna"
+    "</h2>",
+    unsafe_allow_html=True,
 )
 
 # Default data sources (hidden from sidebar)
@@ -162,32 +168,36 @@ stl_file = "UH-60_Blackhawk.stl"
 # Sidebar controls (no data source inputs)
 with st.sidebar:
     if os.path.exists("icon.png"):
-        st.image("icon.png", use_column_width=True)
+        st.image("icon.png", use_container_width=True)
     st.markdown("### MOJO69 🚁")
-    try:
-        from streamlit_stl import stl_from_file
-        stl_from_file(
-            file_path=stl_file,
-            color="#9aa6b2",
-            auto_rotate=True,
-            height=220,
-        )
-    except Exception:
-        st.caption("UH‑60 STL preview unavailable.")
+    show_stl = st.checkbox("Mostrar modelo 3D (opcional)", value=False)
+    if show_stl:
+        try:
+            from streamlit_stl import stl_from_file
+            stl_from_file(
+                file_path=stl_file,
+                color="#9aa6b2",
+                auto_rotate=True,
+                height=220,
+            )
+        except Exception:
+            st.caption("UH‑60 STL preview unavailable.")
     st.markdown("---")
     st.header("Filters")
     df = load_csv(data_csv)
     t_min = int(df['t_seconds'].min())
     t_max = int(df['t_seconds'].max())
+    default_lo = max(t_min, 72988)
+    default_hi = min(t_max, 73299)
     sel = st.slider(
         "Time window (s)",
         min_value=t_min,
         max_value=t_max,
-        value=(t_min, min(t_min + 300, t_max)),
+        value=(default_lo, default_hi),
         step=1,
     )
     smooth = st.checkbox("Smooth series (moving avg)", value=True)
-    window = st.slider("Smoothing window", 1, 21, 5, step=2)
+    window = st.slider("Smoothing window", 1, 21, 9, step=2)
     st.markdown("---")
     st.header("Chart style")
     chart_style = st.selectbox(
@@ -202,22 +212,22 @@ with st.sidebar:
     )
     enable_gradient = st.checkbox("Gradient fill", value=True)
     enable_crosshair = st.checkbox("Axis crosshair", value=True)
-    enable_toolbox = st.checkbox("Toolbox (zoom/save/restore)", value=True)
-    show_markers = st.checkbox("Show markers (min/max)", value=False)
+    enable_toolbox = st.checkbox("Toolbox (zoom/save/restore)", value=False)
+    show_markers = st.checkbox("Show markers (min/max)", value=True)
     declutter = st.checkbox(
         "Declutter (lighter grid, fewer labels)", value=True
     )
     display_mode = st.radio(
         "Display mode",
         ["Combined", "Small multiples"],
-        index=1,
+        index=0,
         horizontal=True,
     )
     st.markdown("---")
     st.header("Visibility")
     show_map = st.checkbox("Show flight path map", value=True)
     show_gauges = st.checkbox("Show summary gauges (simple)", value=False)
-    show_extra = st.checkbox("Show extra plots", value=False)
+    show_extra = st.checkbox("Show extra plots", value=True)
     if show_extra:
         show_vsi = st.checkbox("Vertical Speed plot", value=True)
         show_torques = st.checkbox("Engine Torques plots", value=True)
@@ -226,20 +236,20 @@ with st.sidebar:
         show_torques = False
     st.markdown("---")
     st.header("Panels")
-    show_transcripts = st.checkbox("Transcripciones", value=True)
+    show_transcripts = st.checkbox("Transcripciones", value=False)
     pos_transcripts = st.selectbox(
         "Posición de transcripciones",
         ["Right column", "Below charts"],
         index=0,
     )
-    show_context = st.checkbox("Contexto del accidente", value=True)
+    show_context = st.checkbox("Contexto del accidente", value=False)
     pos_context = st.selectbox(
         "Posición del contexto",
         ["Right column", "Below charts"],
         index=0,
     )
     show_timeline_panel = st.checkbox(
-        "Mostrar línea de tiempo (español)", value=True
+        "Mostrar línea de tiempo (español)", value=False
     )
 
 
@@ -470,6 +480,45 @@ with col_left:
         st_echarts(opt_gs, height="260px", theme=echarts_theme_dark())
         st_echarts(opt_ra, height="260px", theme=echarts_theme_dark())
 
+    # Flight path map directly under charts in the left column
+    if show_map:
+        st.subheader("Flight path (KML) 🗺️")
+        paths = parse_kml_line_strings(kml_file)
+        if not paths:
+            st.info("No LineString coordinates found in KML.")
+        else:
+            all_points = [
+                (lon, lat)
+                for path in paths
+                for (lon, lat) in path
+            ]
+            center_lat = np.mean([lat for _, lat in all_points])
+            center_lon = np.mean([lon for lon, _ in all_points])
+
+            data_rows = []
+            for path in paths:
+                data_rows.append({"path": [[lon, lat] for (lon, lat) in path]})
+            path_df = pd.DataFrame(data_rows)
+
+            layer = pdk.Layer(
+                "PathLayer",
+                path_df,
+                get_path="path",
+                get_color=[88, 166, 255],
+                width_scale=2,
+                width_min_pixels=3,
+            )
+            view_state = pdk.ViewState(
+                latitude=center_lat,
+                longitude=center_lon,
+                zoom=11,
+                pitch=45,
+                bearing=0,
+            )
+            st.pydeck_chart(
+                pdk.Deck(layers=[layer], initial_view_state=view_state)
+            )
+
     # Optional simple summary gauges (ECharts minimal rings)
     if show_gauges:
         st.markdown("\n")
@@ -521,30 +570,7 @@ with col_left:
             st_echarts(ring("Ground Spd", latest_gs, "kt"), height="150px",
                        theme=echarts_theme_dark())
 
-    # Quick stats
-    c1, c2, c3, c4 = st.columns(4)
-    gs_series = dff.get('ground_speed', pd.Series([np.nan]))
-    alt_series = dff.get('altitude_radar', pd.Series([np.nan]))
-    with c1:
-        st.metric(
-            "Max GS (kt)",
-            f"{np.nanmax(pd.to_numeric(gs_series, errors='coerce')):.1f}",
-        )
-    with c2:
-        st.metric(
-            "Avg GS (kt)",
-            f"{np.nanmean(pd.to_numeric(gs_series, errors='coerce')):.1f}",
-        )
-    with c3:
-        st.metric(
-            "Max RA (ft)",
-            f"{np.nanmax(pd.to_numeric(alt_series, errors='coerce')):.1f}",
-        )
-    with c4:
-        st.metric(
-            "Min RA (ft)",
-            f"{np.nanmin(pd.to_numeric(alt_series, errors='coerce')):.1f}",
-        )
+    # Quick stats removed per requirements
 
     # Extra plots (optional)
     if show_vsi:
@@ -665,49 +691,7 @@ with col_right:
         st.markdown("- Impact: water strike; non-survivable.")
 
 
-# Second row: Map (same width as plots)
-if show_map:
-    map_col, _ = st.columns([2.2, 1.3], gap="large")
-    with map_col:
-        st.subheader("Flight path (KML) 🗺️")
-        paths = parse_kml_line_strings(kml_file)
-        if not paths:
-            st.info("No LineString coordinates found in KML.")
-        else:
-            # Build PathLayer polyline(s)
-            all_points = [
-                (lon, lat)
-                for path in paths
-                for (lon, lat) in path
-            ]
-            center_lat = np.mean([lat for _, lat in all_points])
-            center_lon = np.mean([lon for lon, _ in all_points])
-
-            data_rows = []
-            for path in paths:
-                data_rows.append(
-                    {"path": [[lon, lat] for (lon, lat) in path]}
-                )
-            path_df = pd.DataFrame(data_rows)
-
-            layer = pdk.Layer(
-                "PathLayer",
-                path_df,
-                get_path="path",
-                get_color=[88, 166, 255],
-                width_scale=2,
-                width_min_pixels=3,
-            )
-            view_state = pdk.ViewState(
-                latitude=center_lat,
-                longitude=center_lon,
-                zoom=11,
-                pitch=45,
-                bearing=0,
-            )
-            st.pydeck_chart(
-                pdk.Deck(layers=[layer], initial_view_state=view_state)
-            )
+# (Map rendering moved above, within the left column directly under charts.)
 
 
 # 3D model now lives only in the sidebar preview (removed from main page)
@@ -716,26 +700,22 @@ if show_map:
 # Transcripts are now in the right panel above
 
 
-# Timeline (Spanish) at bottom
-st.markdown("---")
-show_timeline = st.checkbox("Mostrar línea de tiempo (español)", value=True)
-if show_timeline:
-    st.subheader("Línea de tiempo (eventos clave)")
-    events = load_timeline_md("Línea de tiempo.md")
-    if events:
-        st.markdown(
-            "<div style='max-height:320px; overflow:auto; padding-right:8px'>",
-            unsafe_allow_html=True,
-        )
-        for ev in events:
-            st.markdown(f"- {ev}")
-        st.markdown("</div>", unsafe_allow_html=True)
-    else:
-        st.caption("No se encontró la línea de tiempo.")
+# Timeline (Spanish) at bottom — removed toggle from main page
 
 # Footer
 st.markdown("---")
-st.caption(
-    "Dashboard construido por Dr Diego Malpica MD. "
-    "Dirección de Medicina Aeroespacial - Fuerza Aeroespacial Colombiana."
+st.markdown(
+    "<div style='text-align:center;color:#FF4B4B;font-weight:700'>"
+    "Dr Diego Malpica MD" "</div>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    "<div style='text-align:center;color:#FF4B4B'>"
+    "Dirección de Medicina Aeroespacial" "</div>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    "<div style='text-align:center;color:#FF4B4B'>"
+    "Fuerza Aeroespacial Colombiana" "</div>",
+    unsafe_allow_html=True,
 )
