@@ -812,20 +812,20 @@ with col_left:
                             "  var actual = p.value[3];\n"
                             "  var unit = metric.indexOf('Ceiling') >= 0 ? "
                             "'ft' : 'SM';\n"
-                            "  return t + '<br/>' + metric + ': ' + actual "
-                            "+ ' ' + unit;\n"
+                            "  return t + '<br/>' + metric + ': ' + actual + "
+                            "' ' + unit;\n"
                             "}"
                         )
+                    },
+                    "toolbox": {
+                        "feature": {"saveAsImage": {}}
                     },
                     "dataset": dataset_3d,
                     "grid3D": {
                         "boxWidth": 180,
                         "boxDepth": 60,
                         "light": {
-                            "main": {
-                                "intensity": 1.2,
-                                "shadow": True
-                            },
+                            "main": {"intensity": 1.2, "shadow": True},
                             "ambient": {"intensity": 0.3}
                         },
                     },
@@ -837,14 +837,9 @@ with col_left:
                     "yAxis3D": {
                         "type": "category",
                         "name": "Metric",
-                        "data": [
-                            "Visibility (SM)", "Ceiling (ft)"
-                        ]
+                        "data": ["Visibility (SM)", "Ceiling (ft)"]
                     },
-                    "zAxis3D": {
-                        "type": "value",
-                        "name": "Value (ceil ÷ 100)"
-                    },
+                    "zAxis3D": {"type": "value", "name": "Value (ceil ÷ 100)"},
                     "series": [
                         {
                             "type": "bar3D",
@@ -858,21 +853,19 @@ with col_left:
                                 "color": (
                                     "function (p) {\n"
                                     "  var metric = p.value[1];\n"
-                                    "  var actual = p.value[3];\n"
+                                    "  var z = +p.value[2];\n"
                                     "  if (metric === 'Visibility (SM)') {\n"
-                                    "    return actual < 3 ? '#FF4B4B' : "
+                                    "    return z < 3 ? '#FF4B4B' : "
                                     "'#58a6ff';\n"
                                     "  } else {\n"
-                                    "    return actual < 1000 ? '#FF4B4B' : "
+                                    "    return z < 10 ? '#FF4B4B' : "
                                     "'#3fb950';\n"
                                     "  }\n"
                                     "}"
                                 )
                             },
                             "label": {"show": False},
-                            "emphasis": {
-                                "label": {"show": False}
-                            },
+                            "emphasis": {"label": {"show": False}},
                             "animation": True,
                             "animationDuration": 1200,
                             "animationEasing": "cubicOut",
@@ -889,6 +882,7 @@ with col_left:
                     "backgroundColor": "transparent",
                     "legend": {"top": 4},
                     "tooltip": {"trigger": "axis"},
+                    "toolbox": {"feature": {"saveAsImage": {}}},
                     "dataset": dataset_2d,
                     "dataZoom": [
                         {"type": "inside", "throttle": 50},
@@ -922,8 +916,7 @@ with col_left:
                                 "color": (
                                     "function (p) {\n"
                                     "  var v = p.value[1];\n"
-                                    "  return v < 3 ? '#FF4B4B' : "
-                                    "'#58a6ff';\n"
+                                    "  return v < 3 ? '#FF4B4B' : '#58a6ff';\n"
                                     "}"
                                 )
                             },
@@ -972,6 +965,7 @@ with col_left:
                     "backgroundColor": "transparent",
                     "legend": {"top": 4},
                     "tooltip": {"trigger": "axis"},
+                    "toolbox": {"feature": {"saveAsImage": {}}},
                     "dataset": dataset_2d,
                     "dataZoom": [
                         {"type": "inside", "throttle": 50},
