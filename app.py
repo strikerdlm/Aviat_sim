@@ -134,6 +134,84 @@ def echarts_theme_dark() -> dict:
     }
 
 
+@st.cache_data(show_spinner=False)
+def load_weather_from_roi(md_path: str) -> pd.DataFrame:
+    # Parse "Surface Observations from Hurlburt Tower" table
+    if not os.path.exists(md_path):
+        return pd.DataFrame()
+    try:
+        with open(md_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except Exception:
+        return pd.DataFrame()
+
+    start_idx = -1
+    for i, ln in enumerate(lines):
+        if "Surface Observations from Hurlburt Tower" in ln:
+            start_idx = i
+            break
+    if start_idx == -1:
+        return pd.DataFrame()
+
+    tds: List[str] = []
+    for ln in lines[start_idx:]:
+        s = ln.strip()
+        if s.startswith("</table>"):
+            break
+        if s.startswith("<td>") and s.endswith("</td>"):
+            tds.append(s[len("<td>"):-len("</td>")].strip())
+
+    rows = []
+    for i in range(0, len(tds), 3):
+        chunk = tds[i:i + 3]
+        if len(chunk) == 3:
+            rows.append(tuple(chunk))
+
+    def fmt_hhmm(s: str) -> str:
+        s = s.strip().replace(" ", "")
+        if ":" in s:
+            return s
+        if len(s) == 4 and s.isdigit():
+            return f"{s[:2]}:{s[2:]}"
+        return s
+
+    def parse_time_pair(cell: str) -> Tuple[str, str]:
+        if "/" in cell:
+            a, b = cell.split("/", 1)
+            return fmt_hhmm(a.strip()), fmt_hhmm(b.strip())
+        return fmt_hhmm(cell.strip()), ""
+
+    def parse_visibility(cell: str) -> float:
+        try:
+            return float(cell.strip())
+        except Exception:
+            return float("nan")
+
+    def parse_ceiling(cell: str) -> float:
+        digits = "".join(ch for ch in cell if ch.isdigit())
+        try:
+            return float(digits)
+        except Exception:
+            return float("nan")
+
+    parsed = []
+    for time_cell, vis_cell, ceil_cell in rows:
+        t_local, t_z = parse_time_pair(time_cell)
+        vis = parse_visibility(vis_cell)
+        ceil_ft = parse_ceiling(ceil_cell)
+        parsed.append({
+            "time_local": t_local,
+            "time_zulu": t_z,
+            "visibility_sm": vis,
+            "ceiling_ft": ceil_ft,
+        })
+
+    dfw = pd.DataFrame(parsed)
+    if not dfw.empty:
+        dfw = dfw.dropna(subset=["visibility_sm", "ceiling_ft"], how="all")
+    return dfw
+
+
 # -----------------
 # Layout & sections
 # -----------------
@@ -262,6 +340,20 @@ with st.sidebar:
     )
     show_timeline_panel = st.checkbox(
         "Mostrar línea de tiempo (español)", value=True
+    )
+    st.markdown("---")
+    st.header("Weather chart")
+    show_weather_chart = st.checkbox(
+        "Show weather (visibility & ceiling)", value=True
+    )
+    weather_chart_style = st.selectbox(
+        "Weather style",
+        [
+            "3D Bar (GL)",
+            "2D Bar",
+            "2D Line",
+        ],
+        index=0,
     )
 
 
@@ -640,7 +732,310 @@ with col_left:
             ],
         }
         st_echarts(opt_tq, height="240px", theme=echarts_theme_dark())
+    # Weather chart (below plots)
+    if 'show_weather_chart' in globals() and show_weather_chart:
+        st.markdown("\n")
+        st.subheader("Weather: Visibility & Ceiling (Hurlburt Field)")
+        wdf = load_weather_from_roi("ROI_UH60 (1).md")
+        if wdf.empty:
+            st.info("No weather table found in ROI markdown.")
+        else:
+            times = wdf["time_local"].tolist()
+            dataset_3d = {
+                "dimensions": ["time", "metric", "z", "actual"],
+                "source": []
+            }
+            for _, r in wdf.iterrows():
+                t_local_val = r["time_local"]
+                t = (
+                    str(t_local_val) if not pd.isna(t_local_val) else ""
+                )
+                vis_val = r["visibility_sm"]
+                vis = (
+                    float(vis_val) if not pd.isna(vis_val) else None
+                )
+                ceil_val = r["ceiling_ft"]
+                ceil = (
+                    float(ceil_val) if not pd.isna(ceil_val) else None
+                )
+                if vis is not None:
+                    dataset_3d["source"].append({
+                        "time": t,
+                        "metric": "Visibility (SM)",
+                        "z": vis,
+                        "actual": vis,
+                    })
+                if ceil is not None:
+                    dataset_3d["source"].append({
+                        "time": t,
+                        "metric": "Ceiling (ft)",
+                        "z": ceil / 100.0,
+                        "actual": ceil,
+                    })
 
+            dataset_2d = {
+                "dimensions": [
+                    "time", "Visibility (SM)", "Ceiling (ft)"
+                ],
+                "source": [
+                    {
+                        "time": (
+                            str(r["time_local"]) if not pd.isna(
+                                r["time_local"]
+                            ) else ""
+                        ),
+                        "Visibility (SM)": (
+                            float(r["visibility_sm"]) if not pd.isna(
+                                r["visibility_sm"]
+                            ) else None
+                        ),
+                        "Ceiling (ft)": (
+                            float(r["ceiling_ft"]) if not pd.isna(
+                                r["ceiling_ft"]
+                            ) else None
+                        ),
+                    }
+                    for _, r in wdf.iterrows()
+                ],
+            }
+
+            if weather_chart_style == "3D Bar (GL)":
+                options_weather = {
+                    "backgroundColor": "transparent",
+                    "aria": {"enabled": True},
+                    "legend": {"top": 4},
+                    "tooltip": {
+                        "formatter": (
+                            "function (p) {\n"
+                            "  var t = p.value[0];\n"
+                            "  var metric = p.value[1];\n"
+                            "  var actual = p.value[3];\n"
+                            "  var unit = metric.indexOf('Ceiling') >= 0 ? "
+                            "'ft' : 'SM';\n"
+                            "  return t + '<br/>' + metric + ': ' + actual "
+                            "+ ' ' + unit;\n"
+                            "}"
+                        )
+                    },
+                    "dataset": dataset_3d,
+                    "grid3D": {
+                        "boxWidth": 180,
+                        "boxDepth": 60,
+                        "light": {
+                            "main": {
+                                "intensity": 1.2,
+                                "shadow": True
+                            },
+                            "ambient": {"intensity": 0.3}
+                        },
+                    },
+                    "xAxis3D": {
+                        "type": "category",
+                        "name": "Time",
+                        "data": times
+                    },
+                    "yAxis3D": {
+                        "type": "category",
+                        "name": "Metric",
+                        "data": [
+                            "Visibility (SM)", "Ceiling (ft)"
+                        ]
+                    },
+                    "zAxis3D": {
+                        "type": "value",
+                        "name": "Value (ceil ÷ 100)"
+                    },
+                    "series": [
+                        {
+                            "type": "bar3D",
+                            "shading": "lambert",
+                            "encode": {
+                                "x": "time",
+                                "y": "metric",
+                                "z": "z"
+                            },
+                            "itemStyle": {
+                                "color": (
+                                    "function (p) {\n"
+                                    "  var metric = p.value[1];\n"
+                                    "  var actual = p.value[3];\n"
+                                    "  if (metric === 'Visibility (SM)') {\n"
+                                    "    return actual < 3 ? '#FF4B4B' : "
+                                    "'#58a6ff';\n"
+                                    "  } else {\n"
+                                    "    return actual < 1000 ? '#FF4B4B' : "
+                                    "'#3fb950';\n"
+                                    "  }\n"
+                                    "}"
+                                )
+                            },
+                            "label": {"show": False},
+                            "emphasis": {
+                                "label": {"show": False}
+                            },
+                            "animation": True,
+                            "animationDuration": 1200,
+                            "animationEasing": "cubicOut",
+                        }
+                    ],
+                }
+                st_echarts(
+                    options_weather,
+                    height="460px",
+                    theme=echarts_theme_dark(),
+                )
+            elif weather_chart_style == "2D Bar":
+                options_weather = {
+                    "backgroundColor": "transparent",
+                    "legend": {"top": 4},
+                    "tooltip": {"trigger": "axis"},
+                    "dataset": dataset_2d,
+                    "dataZoom": [
+                        {"type": "inside", "throttle": 50},
+                        {"type": "slider", "bottom": 8, "height": 14},
+                    ],
+                    "xAxis": {"type": "category", "name": "Time"},
+                    "yAxis": [
+                        {"type": "value", "name": "Visibility (SM)"},
+                        {"type": "value", "name": "Ceiling (ft)"},
+                    ],
+                    "series": [
+                        {
+                            "type": "bar",
+                            "name": "Visibility (SM)",
+                            "yAxisIndex": 0,
+                            "encode": {
+                                "x": "time",
+                                "y": "Visibility (SM)"
+                            },
+                            "markLine": {
+                                "silent": True,
+                                "symbol": "none",
+                                "lineStyle": {
+                                    "color": "#FF4B4B",
+                                    "type": "dashed"
+                                },
+                                "label": {"formatter": "3 SM"},
+                                "data": [{"yAxis": 3}]
+                            },
+                            "itemStyle": {
+                                "color": (
+                                    "function (p) {\n"
+                                    "  var v = p.value[1];\n"
+                                    "  return v < 3 ? '#FF4B4B' : "
+                                    "'#58a6ff';\n"
+                                    "}"
+                                )
+                            },
+                            "animation": True,
+                            "animationDuration": 1000,
+                        },
+                        {
+                            "type": "bar",
+                            "name": "Ceiling (ft)",
+                            "yAxisIndex": 1,
+                            "encode": {
+                                "x": "time",
+                                "y": "Ceiling (ft)"
+                            },
+                            "markLine": {
+                                "silent": True,
+                                "symbol": "none",
+                                "lineStyle": {
+                                    "color": "#FFD166",
+                                    "type": "dashed"
+                                },
+                                "label": {"formatter": "1000 ft"},
+                                "data": [{"yAxis": 1000}]
+                            },
+                            "itemStyle": {
+                                "color": (
+                                    "function (p) {\n"
+                                    "  var v = p.value[2];\n"
+                                    "  return v < 1000 ? '#FF4B4B' : "
+                                    "'#3fb950';\n"
+                                    "}"
+                                )
+                            },
+                            "animation": True,
+                            "animationDuration": 1000,
+                        },
+                    ],
+                }
+                st_echarts(
+                    options_weather,
+                    height="340px",
+                    theme=echarts_theme_dark(),
+                )
+            else:
+                options_weather = {
+                    "backgroundColor": "transparent",
+                    "legend": {"top": 4},
+                    "tooltip": {"trigger": "axis"},
+                    "dataset": dataset_2d,
+                    "dataZoom": [
+                        {"type": "inside", "throttle": 50},
+                        {"type": "slider", "bottom": 8, "height": 14},
+                    ],
+                    "xAxis": {"type": "category", "name": "Time"},
+                    "yAxis": [
+                        {"type": "value", "name": "Visibility (SM)"},
+                        {"type": "value", "name": "Ceiling (ft)"},
+                    ],
+                    "series": [
+                        {
+                            "type": "line",
+                            "name": "Visibility (SM)",
+                            "yAxisIndex": 0,
+                            "smooth": True,
+                            "showSymbol": False,
+                            "encode": {
+                                "x": "time",
+                                "y": "Visibility (SM)"
+                            },
+                            "areaStyle": {"opacity": 0.2},
+                            "markLine": {
+                                "silent": True,
+                                "symbol": "none",
+                                "lineStyle": {
+                                    "color": "#FF4B4B",
+                                    "type": "dashed"
+                                },
+                                "label": {"formatter": "3 SM"},
+                                "data": [{"yAxis": 3}]
+                            },
+                            "animation": True,
+                        },
+                        {
+                            "type": "line",
+                            "name": "Ceiling (ft)",
+                            "yAxisIndex": 1,
+                            "smooth": True,
+                            "showSymbol": False,
+                            "encode": {
+                                "x": "time",
+                                "y": "Ceiling (ft)"
+                            },
+                            "areaStyle": {"opacity": 0.15},
+                            "markLine": {
+                                "silent": True,
+                                "symbol": "none",
+                                "lineStyle": {
+                                    "color": "#FFD166",
+                                    "type": "dashed"
+                                },
+                                "label": {"formatter": "1000 ft"},
+                                "data": [{"yAxis": 1000}]
+                            },
+                            "animation": True,
+                        },
+                    ],
+                }
+                st_echarts(
+                    options_weather,
+                    height="340px",
+                    theme=echarts_theme_dark(),
+                )
 
 with col_right:
     if show_transcripts and pos_transcripts == "Right column":
