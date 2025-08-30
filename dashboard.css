@@ -139,12 +139,12 @@ body {
 	border-top: none;
 }
 .transcript-header { padding: 8px 10px; border-bottom: 1px solid #21262d; font-size: 12px; }
-.transcript-list { padding: 6px 10px 12px; display: grid; gap: 4px; min-height: 560px; max-height: 80vh; overflow: auto; }
+.transcript-list { padding: 6px 10px 12px; display: grid; gap: 6px; min-height: 560px; max-height: 80vh; overflow: auto; align-content: start; align-items: start; grid-auto-rows: auto; }
 
-.line { display: grid; grid-template-columns: 90px 70px 1fr; gap: 10px; align-items: start; padding: 8px 10px; border-radius: 8px; border: 1px solid #242b33; background: #0f141a; }
+.line { display: grid; grid-template-columns: 90px 70px 1fr; gap: 8px; align-items: start; padding: 6px 10px; border-radius: 8px; border: 1px solid #242b33; background: #0f141a; width: 100%; }
 .line .t { color: var(--muted); font-variant-numeric: tabular-nums; }
 .line .crew { font-weight: 600; color: var(--accent); }
-.line .say { color: var(--fg); }
+.line .say { color: var(--fg); white-space: normal; overflow-wrap: anywhere; }
 .line.now { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(88,166,255,.3); }
 
 /* FlightIndicators sizing tweaks */
@@ -190,6 +190,9 @@ body {
 .comms-bubble.show { opacity: 1; transform: translateY(0); }
 .comms-bubble .crew { color: var(--accent); font-weight: 700; font-size: 12px; }
 .comms-bubble .text { color: var(--fg); font-size: 14px; }
+
+/* Hide the overlay transcript bubble above gauges */
+.comms-bubble { display: none !important; }
 
 /* Risk badges */
 .risk-badges { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }

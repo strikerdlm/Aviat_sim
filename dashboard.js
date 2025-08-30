@@ -69,11 +69,13 @@
   let timeline = [];
   let highlights = [];
   let tMin = 0, tMax = 0;
+  let tMoveStart = 0, tMoveEnd = 0; // map movement window (takeoff -> impact/end)
   let playing = false;
   let hasStarted = false;
   let rafId = null;
   let lastTs = 0;
   let lastSliderSecProcessed = NaN;
+  let lastMetricsSecPushed = NaN;
 
   // d3 is provided via script tag
 
@@ -289,17 +291,15 @@
     try {
       const tas = finiteOrZero(+row.TAS);
       const alt = finiteOrZero(computeAltitude(row));
-      const vs = finiteOrZero(+row['Vertical Speed']) / 1000; // FlightIndicators expects ~[-2,2]
-      const hdg = finiteOrZero(headingAtTime(row._t || 0));
-      const roll = 0;
-      const pitch = 0;
+      // VS in fpm -> instrument expects approx [-2, 2]
+      let vs = finiteOrZero(+row['Vertical Speed']) / 1000;
+      if (vs > 1.95) vs = 1.95; else if (vs < -1.95) vs = -1.95;
 
       if (fi && fi.airspeed) fi.airspeed.updateAirSpeed(tas);
       if (fi && fi.altimeter) { fi.altimeter.updateAltitude(alt); fi.altimeter.updatePressure(29.92); }
       if (fi && fi.vertical) fi.vertical.updateVerticalSpeed(vs);
-      if (fi && fi.heading) fi.heading.updateHeading(hdg);
-      if (fi && fi.attitude) { fi.attitude.updateRoll(roll); fi.attitude.updatePitch(pitch); }
-      if (fi && fi.coordinator) fi.coordinator.updateCoordinator(0);
+      // Do not move attitude or turn coordinator (no data in Data.csv)
+      // Do not move heading (no heading data present in Data.csv)
     } catch (e) { if (DEBUG) console.error('sendMetrics failed', e); }
   }
 
@@ -320,6 +320,22 @@
     if (Number.isFinite(ar) && ar >= 0) return ar;
     // If unavailable or flagged negative, report 0 (do not fall back to pressure for the ALT gauge)
     return 0;
+  }
+
+  function computeMovementWindow() {
+    // takeoff: first second where altitude rises above threshold after being 0 earlier
+    const ALT_THRESH = 0.5; // feet (lower threshold so movement starts reliably)
+    let started = null;
+    let lastAlt = 0;
+    for (const r of records) {
+      const alt = computeAltitude(r) || 0;
+      if (started == null && lastAlt <= ALT_THRESH && alt > ALT_THRESH) { started = r._t; }
+      lastAlt = alt;
+    }
+    tMoveStart = started ?? tMin;
+    // impact/end: try to find explicit IMPACT in timeline; else last time where path exists
+    const impact = timeline.find(ev => /IMPACT/i.test(ev.text));
+    tMoveEnd = impact ? impact.t : tMax;
   }
 
   function fmt(num, digits = 0) {
@@ -382,6 +398,13 @@
     let t = current + dt;
     if (t >= tMax) { t = tMax; playing = false; playBtn.textContent = '▶'; }
     slider.value = Math.round(t);
+    // Push metrics directly as an extra safety in case input event is throttled
+    const secNow = +slider.value;
+    if (hasStarted && secNow !== lastMetricsSecPushed) {
+      lastMetricsSecPushed = secNow;
+      const row = recordsBySecond.get(secNow) || nearestRow(secNow);
+      if (row) { sendMetrics(row); updateStats(row, secNow); }
+    }
     slider.dispatchEvent(new Event('input', { bubbles: true }));
     rafId = requestAnimationFrame(tickPlay);
   }
@@ -450,6 +473,7 @@
     setClock(tMin);
 
     timeline = await loadTimeline();
+    computeMovementWindow();
     highlights = extractHighlightsFromMarkdown(timeline);
     window.highlights = highlights;
     renderMarkers();
@@ -567,17 +591,17 @@
     // Set initial slider position and update UI (but not gauges)
     if (records.length) {
       slider.value = Math.round(tMin);
-      setClock(tMin);
-      renderTranscript(tMin);
-      updateEvent(tMin);
-      updateStats(null, tMin);
-      updateCursor(tMin);
+      // Trigger a synthetic slider update to ensure map cursor logic runs
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
     }
   }
 
   // Wait for libraries and DOM, then bring up gauges and the rest of UI
   function libsReady() { 
-    return !!(window.d3 && window.FlightIndicators && document.getElementById('gauges') && document.getElementById('time')); 
+    const haveD3 = typeof d3 !== 'undefined';
+    const haveFI = typeof FlightIndicators !== 'undefined';
+    const haveDom = !!(document.getElementById('gauges') && document.getElementById('time'));
+    return haveD3 && haveFI && haveDom; 
   }
   
   function initializeAll() {
@@ -897,8 +921,20 @@ function parseKmlCoordinates(txt) {
 
 function updateMapPosition(sec) {
   if (!_map.map || !_map.coords.length) return;
-  // naive mapping by index across time range
-  const t0 = (window.__tMin || 0), t1 = (window.__tMax || 1);
+  // Before takeoff, pin to first coord
+  if (sec < (tMoveStart || (window.__tMin || 0))) {
+    const c0 = _map.coords[0];
+    if (_map.marker) _map.marker.setLatLng([c0[1], c0[0]]);
+    return;
+  }
+  // After impact/end, pin to last coord
+  if (sec >= (tMoveEnd || (window.__tMax || 1))) {
+    const cN = _map.coords[_map.coords.length - 1];
+    if (_map.marker) _map.marker.setLatLng([cN[1], cN[0]]);
+    return;
+  }
+  // Map only within movement window
+  const t0 = (tMoveStart || window.__tMin || 0), t1 = (tMoveEnd || window.__tMax || 1);
   const frac = (sec - t0) / Math.max(1, (t1 - t0));
   const idx = Math.max(0, Math.min(_map.coords.length - 1, Math.round(frac * (_map.coords.length - 1))));
   const c = _map.coords[idx];
