@@ -817,17 +817,50 @@ with col_left:
             c_max = c_base_max + 0.1 * c_span
 
             if weather_chart_style == "2D Bar":
+                # Build explicit data arrays with per-bar colors to avoid
+                # any dataset/encode callback issues
+                vis_bar_data = []
+                ceil_bar_data = []
+                for _, r in wdf.iterrows():
+                    vv = r["visibility_sm"]
+                    cv = r["ceiling_ft"]
+                    if not pd.isna(vv):
+                        vv_f = float(vv)
+                        vis_bar_data.append({
+                            "value": vv_f,
+                            "itemStyle": {
+                                "color": ("#D90429" if vv_f < 3 else "#2EA043")
+                            },
+                        })
+                    else:
+                        vis_bar_data.append(None)
+                    if not pd.isna(cv):
+                        cv_f = float(cv)
+                        ceil_bar_data.append({
+                            "value": cv_f,
+                            "itemStyle": {
+                                "color": (
+                                    "#D90429" if cv_f < 1000 else "#2EA043"
+                                )
+                            },
+                        })
+                    else:
+                        ceil_bar_data.append(None)
+
                 options_weather = {
                     "backgroundColor": "transparent",
                     "legend": {"top": 4},
                     "tooltip": {"trigger": "axis"},
                     "toolbox": {"feature": {"saveAsImage": {}}},
-                    "dataset": dataset_2d,
                     "dataZoom": [
                         {"type": "inside", "throttle": 50},
                         {"type": "slider", "bottom": 8, "height": 14},
                     ],
-                    "xAxis": {"type": "category", "name": "Time"},
+                    "xAxis": {
+                        "type": "category",
+                        "name": "Time",
+                        "data": times,
+                    },
                     "yAxis": [
                         {"type": "value", "name": "Visibility (SM)",
                          "min": v_min, "max": v_max},
@@ -839,10 +872,7 @@ with col_left:
                             "type": "bar",
                             "name": "Visibility (SM)",
                             "yAxisIndex": 0,
-                            "encode": {
-                                "x": "time",
-                                "y": "Visibility (SM)"
-                            },
+                            "data": vis_bar_data,
                             "markLine": {
                                 "silent": True,
                                 "symbol": "none",
@@ -853,14 +883,6 @@ with col_left:
                                 "label": {"formatter": "3 SM"},
                                 "data": [{"yAxis": 3}]
                             },
-                            "itemStyle": {
-                                "color": (
-                                    "function (p) {\n"
-                                    "  var v = p.value[1];\n"
-                                    "  return v < 3 ? '#FF4B4B' : '#58a6ff';\n"
-                                    "}"
-                                )
-                            },
                             "animation": True,
                             "animationDuration": 1000,
                         },
@@ -868,10 +890,7 @@ with col_left:
                             "type": "bar",
                             "name": "Ceiling (ft)",
                             "yAxisIndex": 1,
-                            "encode": {
-                                "x": "time",
-                                "y": "Ceiling (ft)"
-                            },
+                            "data": ceil_bar_data,
                             "markLine": {
                                 "silent": True,
                                 "symbol": "none",
@@ -881,15 +900,6 @@ with col_left:
                                 },
                                 "label": {"formatter": "1000 ft"},
                                 "data": [{"yAxis": 1000}]
-                            },
-                            "itemStyle": {
-                                "color": (
-                                    "function (p) {\n"
-                                    "  var v = p.value[2];\n"
-                                    "  return v < 1000 ? '#FF4B4B' : "
-                                    "'#3fb950';\n"
-                                    "}"
-                                )
                             },
                             "animation": True,
                             "animationDuration": 1000,
@@ -930,7 +940,10 @@ with col_left:
                                 "x": "time",
                                 "y": "Visibility (SM)"
                             },
-                            "areaStyle": {"opacity": 0.2},
+                            "areaStyle": {
+                                "opacity": 0.18,
+                                "color": "rgba(234, 92, 92, .25)"
+                            },
                             "markLine": {
                                 "silent": True,
                                 "symbol": "none",
@@ -953,7 +966,10 @@ with col_left:
                                 "x": "time",
                                 "y": "Ceiling (ft)"
                             },
-                            "areaStyle": {"opacity": 0.15},
+                            "areaStyle": {
+                                "opacity": 0.15,
+                                "color": "rgba(63, 185, 80, .20)"
+                            },
                             "markLine": {
                                 "silent": True,
                                 "symbol": "none",
