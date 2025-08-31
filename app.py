@@ -734,7 +734,6 @@ with col_left:
     # Weather chart (below plots)
     if 'show_weather_chart' in globals() and show_weather_chart:
         st.markdown("\n")
-        st.subheader("Weather: Visibility & Ceiling (Hurlburt Field)")
         wdf = load_weather_from_roi("ROI_UH60 (1).md")
         if wdf.empty:
             st.info("No weather table found in ROI markdown.")
@@ -828,9 +827,8 @@ with col_left:
                         vv_f = float(vv)
                         vis_bar_data.append({
                             "value": vv_f,
-                            "itemStyle": {
-                                "color": ("#D90429" if vv_f < 3 else "#2EA043")
-                            },
+                            **({"itemStyle": {"color": "#D90429"}}
+                               if vv_f < 3 else {})
                         })
                     else:
                         vis_bar_data.append(None)
@@ -838,11 +836,8 @@ with col_left:
                         cv_f = float(cv)
                         ceil_bar_data.append({
                             "value": cv_f,
-                            "itemStyle": {
-                                "color": (
-                                    "#D90429" if cv_f < 1000 else "#2EA043"
-                                )
-                            },
+                            **({"itemStyle": {"color": "#2EA043"}}
+                               if cv_f >= 1000 else {})
                         })
                     else:
                         ceil_bar_data.append(None)
@@ -860,25 +855,30 @@ with col_left:
                         "type": "category",
                         "name": "Time",
                         "data": times,
+                        "axisLabel": {"color": "#c9d1d9"},
                     },
                     "yAxis": [
                         {"type": "value", "name": "Visibility (SM)",
-                         "min": v_min, "max": v_max},
+                         "min": v_min, "max": v_max,
+                         "axisLabel": {"color": "#c9d1d9"}},
                         {"type": "value", "name": "Ceiling (ft)",
-                         "min": c_min, "max": c_max},
+                         "min": c_min, "max": c_max,
+                         "axisLabel": {"color": "#c9d1d9"}},
                     ],
                     "series": [
                         {
                             "type": "bar",
                             "name": "Visibility (SM)",
                             "yAxisIndex": 0,
+                            "itemStyle": {"color": "#58a6ff"},
                             "data": vis_bar_data,
                             "markLine": {
                                 "silent": True,
                                 "symbol": "none",
                                 "lineStyle": {
                                     "color": "#FF4B4B",
-                                    "type": "dashed"
+                                    "type": "dashed",
+                                    "width": 2
                                 },
                                 "label": {"formatter": "3 SM"},
                                 "data": [{"yAxis": 3}]
@@ -890,13 +890,15 @@ with col_left:
                             "type": "bar",
                             "name": "Ceiling (ft)",
                             "yAxisIndex": 1,
+                            "itemStyle": {"color": "#D90429"},
                             "data": ceil_bar_data,
                             "markLine": {
                                 "silent": True,
                                 "symbol": "none",
                                 "lineStyle": {
-                                    "color": "#FFD166",
-                                    "type": "dashed"
+                                    "color": "#FF4B4B",
+                                    "type": "dashed",
+                                    "width": 2
                                 },
                                 "label": {"formatter": "1000 ft"},
                                 "data": [{"yAxis": 1000}]
@@ -922,12 +924,18 @@ with col_left:
                         {"type": "inside", "throttle": 50},
                         {"type": "slider", "bottom": 8, "height": 14},
                     ],
-                    "xAxis": {"type": "category", "name": "Time"},
+                    "xAxis": {
+                        "type": "category",
+                        "name": "Time",
+                        "axisLabel": {"color": "#c9d1d9"}
+                    },
                     "yAxis": [
                         {"type": "value", "name": "Visibility (SM)",
-                         "min": v_min, "max": v_max},
+                         "min": v_min, "max": v_max,
+                         "axisLabel": {"color": "#c9d1d9"}},
                         {"type": "value", "name": "Ceiling (ft)",
-                         "min": c_min, "max": c_max},
+                         "min": c_min, "max": c_max,
+                         "axisLabel": {"color": "#c9d1d9"}},
                     ],
                     "series": [
                         {
@@ -936,20 +944,22 @@ with col_left:
                             "yAxisIndex": 0,
                             "smooth": True,
                             "showSymbol": False,
+                            "lineStyle": {"width": 2, "color": "#58a6ff"},
                             "encode": {
                                 "x": "time",
                                 "y": "Visibility (SM)"
                             },
                             "areaStyle": {
                                 "opacity": 0.18,
-                                "color": "rgba(234, 92, 92, .25)"
+                                "color": "rgba(88, 166, 255, .22)"
                             },
                             "markLine": {
                                 "silent": True,
                                 "symbol": "none",
                                 "lineStyle": {
                                     "color": "#FF4B4B",
-                                    "type": "dashed"
+                                    "type": "dashed",
+                                    "width": 2
                                 },
                                 "label": {"formatter": "3 SM"},
                                 "data": [{"yAxis": 3}]
@@ -962,20 +972,22 @@ with col_left:
                             "yAxisIndex": 1,
                             "smooth": True,
                             "showSymbol": False,
+                            "lineStyle": {"width": 2, "color": "#2EA043"},
                             "encode": {
                                 "x": "time",
                                 "y": "Ceiling (ft)"
                             },
                             "areaStyle": {
                                 "opacity": 0.15,
-                                "color": "rgba(63, 185, 80, .20)"
+                                "color": "rgba(46, 160, 67, .20)"
                             },
                             "markLine": {
                                 "silent": True,
                                 "symbol": "none",
                                 "lineStyle": {
-                                    "color": "#FFD166",
-                                    "type": "dashed"
+                                    "color": "#FF4B4B",
+                                    "type": "dashed",
+                                    "width": 2
                                 },
                                 "label": {"formatter": "1000 ft"},
                                 "data": [{"yAxis": 1000}]
