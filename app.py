@@ -349,7 +349,6 @@ with st.sidebar:
     weather_chart_style = st.selectbox(
         "Weather style",
         [
-            "3D Bar (GL)",
             "2D Bar",
             "2D Line",
         ],
@@ -799,85 +798,25 @@ with col_left:
                 ],
             }
 
-            if weather_chart_style == "3D Bar (GL)":
-                options_weather = {
-                    "backgroundColor": "transparent",
-                    "aria": {"enabled": True},
-                    "legend": {"top": 4},
-                    "tooltip": {
-                        "formatter": (
-                            "function (p) {\n"
-                            "  var t = p.value[0];\n"
-                            "  var metric = p.value[1];\n"
-                            "  var actual = p.value[3];\n"
-                            "  var unit = metric.indexOf('Ceiling') >= 0 ? "
-                            "'ft' : 'SM';\n"
-                            "  return t + '<br/>' + metric + ': ' + actual + "
-                            "' ' + unit;\n"
-                            "}"
-                        )
-                    },
-                    "toolbox": {
-                        "feature": {"saveAsImage": {}}
-                    },
-                    "dataset": dataset_3d,
-                    "grid3D": {
-                        "boxWidth": 180,
-                        "boxDepth": 60,
-                        "light": {
-                            "main": {"intensity": 1.2, "shadow": True},
-                            "ambient": {"intensity": 0.3}
-                        },
-                    },
-                    "xAxis3D": {
-                        "type": "category",
-                        "name": "Time",
-                        "data": times
-                    },
-                    "yAxis3D": {
-                        "type": "category",
-                        "name": "Metric",
-                        "data": ["Visibility (SM)", "Ceiling (ft)"]
-                    },
-                    "zAxis3D": {"type": "value", "name": "Value (ceil ÷ 100)"},
-                    "series": [
-                        {
-                            "type": "bar3D",
-                            "shading": "lambert",
-                            "encode": {
-                                "x": "time",
-                                "y": "metric",
-                                "z": "z"
-                            },
-                            "itemStyle": {
-                                "color": (
-                                    "function (p) {\n"
-                                    "  var metric = p.value[1];\n"
-                                    "  var z = +p.value[2];\n"
-                                    "  if (metric === 'Visibility (SM)') {\n"
-                                    "    return z < 3 ? '#FF4B4B' : "
-                                    "'#58a6ff';\n"
-                                    "  } else {\n"
-                                    "    return z < 10 ? '#FF4B4B' : "
-                                    "'#3fb950';\n"
-                                    "  }\n"
-                                    "}"
-                                )
-                            },
-                            "label": {"show": False},
-                            "emphasis": {"label": {"show": False}},
-                            "animation": True,
-                            "animationDuration": 1200,
-                            "animationEasing": "cubicOut",
-                        }
-                    ],
-                }
-                st_echarts(
-                    options_weather,
-                    height="460px",
-                    theme=echarts_theme_dark(),
-                )
-            elif weather_chart_style == "2D Bar":
+            # Compute y-axis ranges to ensure VFR thresholds are visible
+            vis_vals = [
+                float(v) for v in wdf["visibility_sm"].dropna().tolist()
+            ]
+            ceil_vals = [
+                float(v) for v in wdf["ceiling_ft"].dropna().tolist()
+            ]
+            v_base_min = min(vis_vals + [3]) if vis_vals else 3
+            v_base_max = max(vis_vals + [3]) if vis_vals else 3
+            v_span = (v_base_max - v_base_min) or 1.0
+            v_min = max(0.0, v_base_min - 0.1 * v_span)
+            v_max = v_base_max + 0.1 * v_span
+            c_base_min = min(ceil_vals + [1000]) if ceil_vals else 1000
+            c_base_max = max(ceil_vals + [1000]) if ceil_vals else 1000
+            c_span = (c_base_max - c_base_min) or 1.0
+            c_min = max(0.0, c_base_min - 0.1 * c_span)
+            c_max = c_base_max + 0.1 * c_span
+
+            if weather_chart_style == "2D Bar":
                 options_weather = {
                     "backgroundColor": "transparent",
                     "legend": {"top": 4},
@@ -890,8 +829,10 @@ with col_left:
                     ],
                     "xAxis": {"type": "category", "name": "Time"},
                     "yAxis": [
-                        {"type": "value", "name": "Visibility (SM)"},
-                        {"type": "value", "name": "Ceiling (ft)"},
+                        {"type": "value", "name": "Visibility (SM)",
+                         "min": v_min, "max": v_max},
+                        {"type": "value", "name": "Ceiling (ft)",
+                         "min": c_min, "max": c_max},
                     ],
                     "series": [
                         {
@@ -973,8 +914,10 @@ with col_left:
                     ],
                     "xAxis": {"type": "category", "name": "Time"},
                     "yAxis": [
-                        {"type": "value", "name": "Visibility (SM)"},
-                        {"type": "value", "name": "Ceiling (ft)"},
+                        {"type": "value", "name": "Visibility (SM)",
+                         "min": v_min, "max": v_max},
+                        {"type": "value", "name": "Ceiling (ft)",
+                         "min": c_min, "max": c_max},
                     ],
                     "series": [
                         {
