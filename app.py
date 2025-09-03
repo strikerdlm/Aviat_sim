@@ -1066,7 +1066,7 @@ with col_left:
 - Automatización: si está disponible, usa SAS/autopiloto (attitude/altitude/heading hold) como red de seguridad; configura modos y límites antes de entrar a DVE.
 
 ##### Recuperación IIMC/SD
-- Reconocer temprano: “no veo horizonte/referencias” = gatillo.
+- Reconocer temprano: “no veo horizonte/referencias” = gatillo. 
 - Acción inmediata: transición a instrumentos y ejecutar el procedimiento IIMC estandarizado de la unidad (actitud, potencia, rumbo, ascenso seguro, comunicar, coordinar). Considera activar modos de estabilización/recuperación si disponibles.
 - CRM en voz alta: anuncia “IIMC”, transfiere/acepta controles con claridad, el PN vigila instrumentos/altitud/obstáculos, el PM gestiona comunicaciones y navegación.
 
@@ -1102,6 +1102,25 @@ with col_left:
 
 #### Cierre
 Volar con NVG incrementa el riesgo por limitaciones físicas del sistema y del piloto. El antídoto operativo es simple pero exigente: planificación conservadora, mínimos claros, escaneo disciplinado con instrumentos, CRM activo y recuperación IIMC inmediata cuando toque. Las ayudas tecnológicas y el entrenamiento recurrente suman capas, pero no sustituyen la disciplina básica. Con estas barreras en capas, reducimos la probabilidad de SD y mejoramos el margen cuando la noche “se come” el horizonte.
+
+#### Referencias
+- Braithwaite, M. G., Douglass, P. K., Durnford, S. J., & Lucas, G. (1998). The hazard of spatial disorientation during helicopter flight using night vision devices. Aviation, Space, and Environmental Medicine, 69(11), 1038–1044.
+- Braithwaite, M. G., Dunford, S. J., Crowley, J. S., Rosado, N. R., & Albano, J. P. (1998). Spatial disorientation in U.S. Army rotary-wing operations. Aviation, Space, and Environmental Medicine, 69, 1031–1037.
+- Malpica, Diego. Colombian Air Force (FAC) Research Team. (2025). Spatial disorientation in Colombian Air Force personnel: A cross-sectional analysis. Unpublished internal analysis.
+- Eglin Air Force Base. (2015). Black Hawk crash investigation findings released. U.S. Air Force. [eglin.af.mil](https://www.eglin.af.mil/News/Article-Display/Article/813958/black-hawk-crash-investigation-findings-released/)
+- Genco, L. V., & Demitry, C. (1998). Evaluation of night vision goggle: Visual acuity degradation while wearing the FV-9 laser eye protection spectacle (USAARL Report No. 98-17). U.S. Army Aeromedical Research Laboratory. [DTIC](https://apps.dtic.mil/sti/citations/ADA349473)
+- Gil‑Cabrera, J., Tornero Aguilera, J. F., Sanchez‑Tena, M. Á., Alvarez‑Peregrina, C., Valbuena‑Iglesias, C., & Clemente‑Suárez, V. J. (2020). Aviation-associated spatial disorientation and incidence of visual illusions survey in military pilots. The International Journal of Aerospace Psychology. [https://doi.org/10.1080/24721840.2020.1841562](https://doi.org/10.1080/24721840.2020.1841562)
+- Lewkowicz, R., & Biernacki, M. P. (2020). A survey of spatial disorientation incidence in Polish military pilots. International Journal of Occupational Medicine and Environmental Health, 33(6), 791–810. [https://doi.org/10.13075/ijomeh.1896.01621](https://doi.org/10.13075/ijomeh.1896.01621)
+- NATO HFM-118 Task Group. (2008). Spatial disorientation training – demonstration and avoidance (RTO-TR-HFM-118). NATO Research and Technology Organisation. [PDF](https://apps.dtic.mil/sti/tr/pdf/ADA493605.pdf)
+- Parush, A., Gauthier, M. S., Arseneau, L., & Tang, D. (2011). The human factors of night vision goggles: Perceptual, cognitive, and physical factors that influence performance and safety. Reviews of Human Factors and Ergonomics, 7(1), 1–60. [https://doi.org/10.1177/1557234X11410392](https://doi.org/10.1177/1557234X11410392)
+- Poisson, R. J., III, & Miller, M. E. (2014). Spatial disorientation mishap trends in the U.S. Air Force 1993–2013. Aviation, Space, and Environmental Medicine, 85(9), 919–924. [https://doi.org/10.3357/ASEM.3971.2014](https://doi.org/10.3357/ASEM.3971.2014)
+- Rogers, B., & Anstis, S. (1972). Intensity versus adaptation and the Pulfrich stereophenomenon. Vision Research, 12(5), 909–928.
+- Rupert, A. H. (2000). Tactile situation awareness system: Proprioceptive prostheses for sensory deficiencies. Aviation, Space, and Environmental Medicine, 71(9, Suppl.), A92–A99. [PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6305736/)
+- Shappell, S. A., & Wiegmann, D. A. (2000). The Human Factors Analysis and Classification System—HFACS (DOT/FAA/AM-00/7). Federal Aviation Administration Office of Aviation Medicine. [PDF](https://apps.dtic.mil/sti/tr/pdf/ADA567751.pdf)
+- Shappell, S. A., & Wiegmann, D. A. (2001). Applying reason: The human factors analysis and classification system (HFACS). Human Factors and Aerospace Safety, 1(1), 59–86.
+- Tu, M.-Y., Cheng, C.-C., Hsin, Y.-H., Huang, W.-W., Li, F.-L., Hu, J.-M., Chiang, K.-T., & Lai, C.-Y. (2021). Analysis of in-flight spatial disorientation among military pilots in Taiwan. Journal of Medical Sciences, 41(1), 22–28. [https://doi.org/10.4103/jmedsci.jmedsci_94_20](https://doi.org/10.4103/jmedsci.jmedsci_94_20)
+- U.S. Marine Corps Forces Special Operations Command. (2015). MARSOC identifies seven Marines who died in accident. United States Marine Corps. [marines.mil](https://www.marines.mil/News/News-Display/article/580497/marsoc-identifies-seven-marines-who-died-in-accident/)
+- Wiley, R. W., & Holly, D. C. (1976). Human visual capabilities in the infrared spectrum (AFAMRL-TR-76-98). Air Force Aerospace Medical Research Laboratory.
 """
     st.markdown(article_md)
 
