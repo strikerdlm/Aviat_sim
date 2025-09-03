@@ -1003,73 +1003,11 @@ with col_left:
                     theme=echarts_theme_dark(),
                 )
 
-    # NVG/SD eye-catching article block (appears below the last plot)
-    article_html = """
-<style>
-  .nvg-sd-article {
-    position: relative;
-    margin-top: 18px;
-    padding: 24px 22px 22px 22px;
-    border-radius: 16px;
-    border: 1px solid #30363d;
-    color: #c9d1d9;
-    background:
-      radial-gradient(1200px 600px at 10% -10%, rgba(255,75,75,0.10), rgba(255,75,75,0)) ,
-      radial-gradient(1000px 500px at 110% 10%, rgba(88,166,255,0.10), rgba(88,166,255,0)) ,
-      linear-gradient(135deg, rgba(88,166,255,0.08), rgba(210,168,255,0.06));
-    box-shadow:
-      0 10px 30px rgba(0,0,0,0.35),
-      inset 0 1px 0 rgba(255,255,255,0.04);
-    backdrop-filter: blur(6px);
-  }
-  .nvg-sd-article:before {
-    content: "";
-    position: absolute;
-    inset: 1px;
-    border-radius: 15px;
-    pointer-events: none;
-    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0));
-  }
-  .nvg-sd-article .accent-bar {
-    position: relative;
-    height: 6px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #FF4B4B, #58a6ff, #d2a8ff, #3fb950);
-    background-size: 300% 100%;
-    animation: flow 8s ease-in-out infinite;
-    margin-bottom: 14px;
-    box-shadow: 0 0 22px rgba(255,75,75,0.25), 0 0 18px rgba(88,166,255,0.22);
-  }
-  @keyframes flow {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-  .nvg-sd-article .content {
-    white-space: pre-wrap;
-    line-height: 1.42;
-    font-size: 16px;
-    font-family: Inter, system-ui, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
-    text-wrap: pretty;
-  }
-  .nvg-sd-article .content strong,
-  .nvg-sd-article .content b {
-    color: #ff7b7b;
-  }
-  .nvg-sd-article .footer-glow {
-    height: 18px;
-    margin-top: 14px;
-    border-radius: 12px;
-    background: radial-gradient(80% 100% at 50% 50%, rgba(88,166,255,0.25), rgba(88,166,255,0));
-    filter: blur(10px);
-  }
-</style>
-<div class="nvg-sd-article" aria-label="NVG y Desorientación Espacial - Revisión operativa">
-  <div class="accent-bar"></div>
-  <div class="content">
-Revisión operativa para pilotos: NVG y Desorientación Espacial (SD) en helicópteros militares
+    # NVG/SD article as clean Markdown (Spanish)
+    article_md = """
+### Revisión operativa para pilotos: NVG y Desorientación Espacial (SD) en helicópteros militares
 
-Resumen ejecutivo (para aviadores)
+#### Resumen ejecutivo (para aviadores)
 - Riesgo: volar con NVG multiplica por >5 la tasa de accidentes vs día VMC; 43% de los accidentes con SD ocurren con NVG (Braithwaite, 1998).
 - Limitaciones clave NVG (ANVIS‑9): agudeza ~20/40, FOV ~40°, sensibilidad al contraste ~50% de lo normal, profundidad degradada.
 - Carga de trabajo: máxima bajo NVG; 75% reporta dolor cervical crónico; cada 30° de giro de cabeza suma ~50–100 N al cuello (Parush, 2011).
@@ -1077,7 +1015,7 @@ Resumen ejecutivo (para aviadores)
 - Mitigación: mínimos meteorológicos estrictos, planificación de obstáculos/cables, escaneo NVG disciplinado + cross‑check de instrumentos, CRM activo, procedimientos IIMC sin demora, uso de ayudas (autopiloto/HTAWS/HMD si equipado).
 - Entrenamiento: refrescos SD/NVG regulares (NATO 4–5 años); la experiencia en NVG mejora detección, navegación y evita SD.
 
-1) Por qué importa
+#### 1. Por qué importa
 - La SD mata. En helicópteros militares ~27% de accidentes involucran SD, y los eventos SD son desproporcionadamente fatales (Braithwaite, 1998; NATO HFM‑118, 2008).
 - Con NVG la tasa de accidentes es >5× mayor vs día VMC (9.0 vs 1.66 por 100.000 h), y 43% de los accidentes con SD suceden en vuelos con NVG (Braithwaite, 1998).
 - Casuística reciente subraya el peligro:
@@ -1085,65 +1023,66 @@ Resumen ejecutivo (para aviadores)
   - Pave Hawk 2018 (combate): 7 fallecidos; impacto con cable de acero de 3/8” entre torres de 341 ft.
   - CV‑22 2010 (infiltración nocturna): 4 fallecidos, 16 heridos.
 
-2) Qué te dan (y qué no) tus ANVIS‑9
+#### 2. Qué te dan (y qué no) tus ANVIS‑9
 - Agudeza: ~20/40 bajo condiciones óptimas; 3–4× menos detalle que a luz diurna. Cables y obstáculos pequeños pueden pasar desapercibidos.
 - Contraste: ~50% de lo normal; empeora con menos iluminación. En noche oscura crece el ruido de imagen.
 - Campo de visión: ~40° circular; visión “sorbete”. Necesita barrido constante de cabeza para construir SA.
 - Profundidad/distancia: imagen “plana”; tendencia a subestimar distancias y razón de cierre. Apóyate en referencias confiables (RA, HTAWS si equipado).
 - Alineación: desajustes de 1–2 mrad o diferencias de brillo entre tubos producen fatiga, molestias y errores de profundidad. Ajuste/foco en test lane mejora significativamente la agudeza.
 
-3) Ilusiones que más muerden con NVG
+#### 3. Ilusiones que más muerden con NVG
 - Leans (viraje inadvertido), horizonte falso (nubes/luces), pérdida de horizonte, somatográvicas (aceleración = falsa actitud), Coriolis con movimientos de cabeza.
 - Autocinesis (luces “moviéndose” en la oscuridad), brownout/whiteout y “falsa estacionariedad”.
 - Más del 70% de pilotos reportan estas ilusiones; 25% se confunde al entrar IMC inadvertidamente (Lai, 2021). Bajo NVG, >90% ha vivido ilusiones específicas NVG.
 
-4) Carga de trabajo y fisiología
+#### 4. Carga de trabajo y fisiología
 - NVG = mayor workload percibido en simuladores. Mantener escaneo externo, instrumentos, navegación y CRM incrementa la tarea (Parush, 2011).
 - Físico: 75% reporta dolor cervical; cada 30° de giro añade ~50–100 N de compresión cervical. Gestiona tiempos, posturas, contrapesos y límites de movimiento.
 - Endurance: algunas unidades cuentan 1 h NVG = 1.5 h a efectos de fatiga. Planifica en consecuencia.
 
-5) Patrones de accidente y lecciones
+#### 5. Patrones de accidente y lecciones
 - Eglin 2015: combinación letal de violar mínimos (regla) y fallas de decisión bajo estrés (no ejecutar IIMC a tiempo), sumado a gradiente de autoridad y CRM débil.
 - Tendencias: pérdida súbita de referencias (agua, noche sin luna, meteorología degradada), obstáculos invisibles (cables), y sobrecarga/fragmentación de atención.
 
-6) Factores desencadenantes típicos (red flags)
+#### 6. Factores desencadenantes típicos (red flags)
 - Noche sin luna / sobre agua / meteorología marginal (neblina, techo bajo, vis reducida).
 - Fijación en la imagen NVG y pobre cross‑check de instrumentos.
 - Cabeceo/aceleración en despegues/idas al aire sin horizonte visible (somatográvicas).
 - Head‑work excesivo por FOV estrecho; fatiga cervical y de atención.
 - Gradiente de autoridad: nadie cuestiona decisiones riesgosas.
 
-7) Barreras operacionales que funcionan
-Planificación
+#### 7. Barreras operacionales que funcionan
+
+##### Planificación
 - Mínimos: adhesión estricta a mínimos NVG publicados. Si no se cumplen: NO‑GO o IFR.
 - Ruta y obstáculos: estudio detallado de cables/torres; usa datos actualizados y márgenes verticales. Evita “wire environments” con NVG si no son imprescindibles.
 - Iluminación: evalúa fase lunar, nubosidad, reflectividad del terreno/agua.
 - Endurance/fatiga: ajusta duración y roles de tripulación (rotaciones, descansos).
 
-Ejecución
+##### Ejecución
 - Escaneo NVG disciplinado: barridos de cabeza lentos y deliberados; evita fijación. Integra una “cruz” de instrumentos agresiva.
 - Velocidad/altitud: ajusta perfiles para la visibilidad real NVG y contraste del terreno. Mantén “guardrails” de RA/HTAWS si equipado.
 - CRM: briefea “callouts” de desorientación y transferencia de controles. Promueve “challenge and response” sin barreras de jerarquía.
 - Automatización: si está disponible, usa SAS/autopiloto (attitude/altitude/heading hold) como red de seguridad; configura modos y límites antes de entrar a DVE.
 
-Recuperación IIMC/SD
-- Reconocer temprano: “no veo horizonte/referencias” = gatillo. 
+##### Recuperación IIMC/SD
+- Reconocer temprano: “no veo horizonte/referencias” = gatillo.
 - Acción inmediata: transición a instrumentos y ejecutar el procedimiento IIMC estandarizado de la unidad (actitud, potencia, rumbo, ascenso seguro, comunicar, coordinar). Considera activar modos de estabilización/recuperación si disponibles.
 - CRM en voz alta: anuncia “IIMC”, transfiere/acepta controles con claridad, el PN vigila instrumentos/altitud/obstáculos, el PM gestiona comunicaciones y navegación.
 
-8) Tecnología y ayudas
+#### 8. Tecnología y ayudas
 - HMD/simbología en el visor: horizonte artificial y FPM en la línea de visión reducen dependencia de referencias externas.
 - HTAWS/RA/alertas de banco: barreras contra CFIT y deslizamiento de actitud.
 - Autopiloto/SAS: “botón de nivelación” o modos de retención como ayuda de último recurso, si equipado.
 - TSAS (táctil): cueing vibrotáctil ha permitido mantener actitud incluso sin visión tras breve entrenamiento; reduce workload (Rupert, 2000).
 - Mejoras NVG: fusiones I² + IR y visores digitales amplían FOV/calidad, pero requieren entrenamiento específico.
 
-9) Entrenamiento y política
+#### 9. Entrenamiento y política
 - Entrenamiento SD/NVG periódico (NATO: cada 4–5 años) con demostraciones prácticas de ilusiones y escenarios NVG/DVE.
 - La pericia en NVG importa: usuarios experimentados detectan mejor blancos, navegan y evitan SD (Parush, 2011).
 - Integra experiencias reales de tripulación a los escenarios de simulador (entradas IIMC sobre agua, noche sin luna, cables).
 
-10) Reglas de oro NVG/SD
+#### 10. Reglas de oro NVG/SD
 - Si no hay mínimos NVG, no hay misión NVG.
 - Planifica como si los cables no existieran en la imagen NVG: márgenes y alternativas.
 - Escanea fuera con la cabeza; verifica dentro con instrumentos. Siempre.
@@ -1153,7 +1092,7 @@ Recuperación IIMC/SD
 - Bravo por el “no‑go”: es una decisión de seguridad, no de capacidad.
 - La fatiga no perdona en NVG: gestiona tiempos y cuellos.
 
-Anexo: briefing de 60 segundos NVG/SD (tripulación)
+#### Anexo: briefing de 60 segundos NVG/SD (tripulación)
 - Amenazas clave hoy: iluminación, meteo, cables/obstáculos, segmentos de agua/terreno oscuro.
 - Mínimos NVG y criterios de abortaje: explícitos.
 - Roles: quién vuela, quién monitorea, quién comunica; callouts de SD/IIMC.
@@ -1161,13 +1100,10 @@ Anexo: briefing de 60 segundos NVG/SD (tripulación)
 - Señales de SD que autorizan transferencia de controles inmediata.
 - Plan B/C: IFR pop‑up/derrota de escape/alternos.
 
-Cierre
+#### Cierre
 Volar con NVG incrementa el riesgo por limitaciones físicas del sistema y del piloto. El antídoto operativo es simple pero exigente: planificación conservadora, mínimos claros, escaneo disciplinado con instrumentos, CRM activo y recuperación IIMC inmediata cuando toque. Las ayudas tecnológicas y el entrenamiento recurrente suman capas, pero no sustituyen la disciplina básica. Con estas barreras en capas, reducimos la probabilidad de SD y mejoramos el margen cuando la noche “se come” el horizonte.
-  </div>
-  <div class="footer-glow"></div>
-</div>
 """
-    st.markdown(article_html, unsafe_allow_html=True)
+    st.markdown(article_md)
 
 with col_right:
     if show_transcripts and pos_transcripts == "Right column":
