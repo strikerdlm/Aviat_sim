@@ -1,4 +1,35 @@
-## UH-60M Flight Replay Dashboard
+## UH‑60M Flight Briefing — Streamlit App
+
+This Streamlit application was prepared for the “VIII Congreso Internacional de la Escuela de Helicópteros para las Fuerzas Armadas”. It provides an interactive flight briefing and analysis experience with synchronized instruments, charts, transcripts, and contextual panels.
+
+### Scientific context and sources
+The information presented is a scientific analysis of the documents released by U.S. Special Operations Command (2015): “MARSOC/LAANG UH‑60 helicopter incident [FOIA documents]”. See the primary source here: [SOCOM FOIA — MARSOC/LAANG UH‑60 Helicopter Incident](https://www.socom.mil/FOIA/Pages/MARSOC-LAANG-UH-60-Helicopter-Incident.aspx).
+
+### Author
+- Diego Malpica, MD — Colombian Air Force (FAC) Research Team  
+  ORCID: [https://orcid.org/0000-0002-2257-4940](https://orcid.org/0000-0002-2257-4940)
+
+### Disclaimers
+- This analysis does not constitute the view of the Colombian Aerospace Force (Fuerza Aeroespacial Colombiana, FAC).
+- This is an academic exercise for the congress and for learning exclusively. It is not official guidance, policy, or an operational recommendation.
+
+### Quick start (Streamlit)
+1. Ensure Python 3.9+ is installed.
+2. Install dependencies:
+   - `pip install -r requirements.txt`
+3. Place the required data files next to `app.py` (repository root by default):
+   - `Data.csv`
+   - `MOJO69 Flight Path.kml`
+   - `UH-60_Blackhawk.stl` (optional, for the 3D model)
+   - `icon.png` (optional)
+4. Run the app:
+   - `streamlit run app.py`
+5. Your browser should open automatically. If not, visit the URL shown in the terminal (typically `http://localhost:8501`).
+
+---
+
+### Legacy HTML dashboard (dashboard.html)
+The repository also contains a static web dashboard (`dashboard.html`). The following sections describe and document that legacy interface.
 
 This project replays a UH-60M flight with synchronized instruments, charts, a timeline, transcripts, and a live map. Playback is synchronized to the time fields in `Data.csv` (Local Hour, Local Minute, Local Second).
 
