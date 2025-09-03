@@ -217,7 +217,7 @@ def load_weather_from_roi(md_path: str) -> pd.DataFrame:
 # Layout & sections
 # -----------------
 st.set_page_config(
-    page_title="UH‑60M Flight Briefing",
+    page_title="VIII Congreso Internacional de la Escuela de Helicópteros para las Fuerzas Armadas",
     page_icon=("icon.png" if os.path.exists("icon.png") else "🚁"),
     layout="wide",
     initial_sidebar_state="expanded",
@@ -225,8 +225,8 @@ st.set_page_config(
 
 st.markdown(
     "<h1 style='margin-bottom:6px'>"
-    "Congreso Internacional de Escuelas de Helicópteros de Latinoamérica "
-    "2025 🚁"
+    "VIII Congreso Internacional de la Escuela de Helicópteros "
+    "para las Fuerzas Armadas"
     "</h1>",
     unsafe_allow_html=True,
 )
