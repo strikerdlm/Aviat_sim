@@ -1009,7 +1009,7 @@ with col_left:
 
 #### Resumen ejecutivo (para aviadores)
 - Riesgo: volar con NVG multiplica por >5 la tasa de accidentes vs día VMC; 43% de los accidentes con SD ocurren con NVG (Braithwaite, 1998).
-- Limitaciones clave NVG (ANVIS‑9): agudeza ~20/40, FOV ~40°, sensibilidad al contraste ~50% de lo normal, profundidad degradada.
+- Limitaciones clave NVG (ANVIS‑9): agudeza ~20/40, campo visual ~40°, sensibilidad al contraste ~50% de lo normal, profundidad degradada.
 - Carga de trabajo: máxima bajo NVG; 75% reporta dolor cervical crónico; cada 30° de giro de cabeza suma ~50–100 N al cuello (Parush, 2011).
 - Ilusiones: >90% de pilotos helo han vivido ilusiones bajo NVG; “leans”, horizonte falso, somatográvicas y pérdida de horizonte son las más reportadas.
 - Mitigación: mínimos meteorológicos estrictos, planificación de obstáculos/cables, escaneo NVG disciplinado + cross‑check de instrumentos, CRM activo, procedimientos IIMC sin demora, uso de ayudas (autopiloto/HTAWS/HMD si equipado).
@@ -1030,13 +1030,13 @@ with col_left:
 - Profundidad/distancia: imagen “plana”; tendencia a subestimar distancias y razón de cierre. Apóyate en referencias confiables (RA, HTAWS si equipado).
 - Alineación: desajustes de 1–2 mrad o diferencias de brillo entre tubos producen fatiga, molestias y errores de profundidad. Ajuste/foco en test lane mejora significativamente la agudeza.
 
-#### 3. Ilusiones que más muerden con NVG
+#### 3. Ilusiones más severas con NVG
 - Leans (viraje inadvertido), horizonte falso (nubes/luces), pérdida de horizonte, somatográvicas (aceleración = falsa actitud), Coriolis con movimientos de cabeza.
 - Autocinesis (luces “moviéndose” en la oscuridad), brownout/whiteout y “falsa estacionariedad”.
 - Más del 70% de pilotos reportan estas ilusiones; 25% se confunde al entrar IMC inadvertidamente (Lai, 2021). Bajo NVG, >90% ha vivido ilusiones específicas NVG.
 
 #### 4. Carga de trabajo y fisiología
-- NVG = mayor workload percibido en simuladores. Mantener escaneo externo, instrumentos, navegación y CRM incrementa la tarea (Parush, 2011).
+- NVG = mayor carga de trabajo percibida en simuladores. Mantener escaneo externo, instrumentos, navegación y CRM incrementa la tarea (Parush, 2011).
 - Físico: 75% reporta dolor cervical; cada 30° de giro añade ~50–100 N de compresión cervical. Gestiona tiempos, posturas, contrapesos y límites de movimiento.
 - Endurance: algunas unidades cuentan 1 h NVG = 1.5 h a efectos de fatiga. Planifica en consecuencia.
 
@@ -1048,7 +1048,7 @@ with col_left:
 - Noche sin luna / sobre agua / meteorología marginal (neblina, techo bajo, vis reducida).
 - Fijación en la imagen NVG y pobre cross‑check de instrumentos.
 - Cabeceo/aceleración en despegues/idas al aire sin horizonte visible (somatográvicas).
-- Head‑work excesivo por FOV estrecho; fatiga cervical y de atención.
+- Head‑work excesivo por campo visual estrecho; fatiga cervical y de atención.
 - Gradiente de autoridad: nadie cuestiona decisiones riesgosas.
 
 #### 7. Barreras operacionales que funcionan
@@ -1062,8 +1062,8 @@ with col_left:
 ##### Ejecución
 - Escaneo NVG disciplinado: barridos de cabeza lentos y deliberados; evita fijación. Integra una “cruz” de instrumentos agresiva.
 - Velocidad/altitud: ajusta perfiles para la visibilidad real NVG y contraste del terreno. Mantén “guardrails” de RA/HTAWS si equipado.
-- CRM: briefea “callouts” de desorientación y transferencia de controles. Promueve “challenge and response” sin barreras de jerarquía.
-- Automatización: si está disponible, usa SAS/autopiloto (attitude/altitude/heading hold) como red de seguridad; configura modos y límites antes de entrar a DVE.
+- CRM: comunica “callouts” de desorientación y transferencia de controles. Promueve “challenge and response” sin barreras de jerarquía.
+- Automatización: si está disponible, usa SAS/autopiloto (attitude/altitude/heading hold) como red de seguridad; configura modos y límites antes de entrar a DVE (Entorno Visual Degradado).
 
 ##### Recuperación IIMC/SD
 - Reconocer temprano: “no veo horizonte/referencias” = gatillo. 
@@ -1072,13 +1072,13 @@ with col_left:
 
 #### 8. Tecnología y ayudas
 - HMD/simbología en el visor: horizonte artificial y FPM en la línea de visión reducen dependencia de referencias externas.
-- HTAWS/RA/alertas de banco: barreras contra CFIT y deslizamiento de actitud.
+- HTAWS/RA/alertas de alabeo: barreras contra CFIT y deslizamiento de actitud.
 - Autopiloto/SAS: “botón de nivelación” o modos de retención como ayuda de último recurso, si equipado.
-- TSAS (táctil): cueing vibrotáctil ha permitido mantener actitud incluso sin visión tras breve entrenamiento; reduce workload (Rupert, 2000).
-- Mejoras NVG: fusiones I² + IR y visores digitales amplían FOV/calidad, pero requieren entrenamiento específico.
+- TSAS (táctil): cueing vibrotáctil ha permitido mantener actitud incluso sin visión tras breve entrenamiento; reduce la carga de trabajo (Rupert, 2000).
+- Mejoras NVG: fusiones I² + IR y visores digitales amplían campo visual/calidad, pero requieren entrenamiento específico.
 
 #### 9. Entrenamiento y política
-- Entrenamiento SD/NVG periódico (NATO: cada 4–5 años) con demostraciones prácticas de ilusiones y escenarios NVG/DVE.
+- Entrenamiento SD/NVG periódico (NATO: cada 4–5 años) con demostraciones prácticas de ilusiones y escenarios NVG/DVE (Entorno Visual Degradado).
 - La pericia en NVG importa: usuarios experimentados detectan mejor blancos, navegan y evitan SD (Parush, 2011).
 - Integra experiencias reales de tripulación a los escenarios de simulador (entradas IIMC sobre agua, noche sin luna, cables).
 
